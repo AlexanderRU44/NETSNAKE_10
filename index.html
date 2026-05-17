@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+    <title>NetSnake 10</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: #222; color: #111; font-family: 'Press Start 2P', monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; padding: 10px; overflow: hidden;
+        }
+        h1 { color: #8bac0f; text-shadow: 0 0 5px rgba(139, 172, 15, 0.5); margin: 0 0 15px 0; font-size: 0.9rem; text-align: center; }
+        .phone-wrapper {
+            background: #333; padding: 15px; border-radius: 20px; box-shadow: inset 0 0 10px #000, 0 10px 20px rgba(0,0,0,0.5);
+            border: 4px solid #444; width: 100%; max-width: 410px; display: flex; flex-direction: column; gap: 15px;
+            position: relative;
+        }
+        .screen { background-color: #8bac0f; border: 8px solid #0f380f; padding: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.3); position: relative; }
+        .hud { display: flex; justify-content: space-between; font-size: 0.55rem; border-bottom: 2px solid #0f380f; padding-bottom: 8px; margin-bottom: 8px; color: #0f380f; }
+        canvas { background-color: #9bbc0f; display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
+        
+        .timer-bar-container { width: 100%; height: 10px; background: #8bac0f; border: 2px solid #0f380f; margin-top: 5px; visibility: hidden; }
+        .timer-bar { height: 100%; background: #0f380f; width: 100%; transition: width 0.1s linear; }
+
+        .name-input-overlay {
+            position: absolute; top: 130px; left: 35px; right: 35px;
+            background: #0f380f; padding: 15px; border: 3px solid #9bbc0f;
+            display: none; flex-direction: column; align-items: center; gap: 12px; z-index: 10;
+        }
+        .name-input-overlay label { color: #9bbc0f; font-size: 9px; text-align: center; line-height: 1.4; }
+        .name-input-overlay input {
+            background: #9bbc0f; color: #0f380f; border: none; padding: 8px;
+            font-family: inherit; font-size: 12px; text-align: center; width: 100%;
+            outline: none; text-transform: uppercase;
+        }
+        .name-input-overlay button {
+            background: #9bbc0f; color: #0f380f; border: none; padding: 8px 15px;
+            font-family: inherit; font-size: 8px; cursor: pointer; width: 100%;
+        }
+
+        .dpad-container { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 5px; }
+        .dpad-row { display: flex; justify-content: center; width: 100%; }
+        .btn {
+            background: #252525; color: #8bac0f; border: 3px solid #1a1a1a; font-family: inherit;
+            box-shadow: 0 4px #111, inset 0 2px rgba(255,255,255,0.1); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.05s ease;
+        }
+        .btn:active { transform: translateY(3px); box-shadow: 0 1px #111; }
+        .btn-dir { width: 60px; height: 60px; margin: 3px; font-size: 1rem; border-radius: 12px; }
+        .btn-center { width: 60px; height: 60px; margin: 3px; background: #444; border-radius: 50%; }
+        .controls-hint { color: #555; margin-top: 10px; text-align: center; font-size: 0.4rem; }
+    </style>
+</head>
+<body>
+
+    <h1>NETSNAKE 10</h1>
+
+    <div class="phone-wrapper">
+        <div class="screen">
+            <div class="hud">
+                <span id="score">SCORE: 000</span>
+                <span id="hi-score">BEST: LOADING...</span>
+            </div>
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            
+            <div class="name-input-overlay" id="nameOverlay">
+                <label id="overlayLabel">ВВЕДИТЕ ИМЯ:</label>
+                <input type="text" id="nameInput" maxlength="8" autofocus autocomplete="off">
+                <button id="btnSaveName">OK / SAVE</button>
+            </div>
+
+            <div class="timer-bar-container" id="timer-container">
+                <div class="timer-bar" id="timer-bar"></div>
+            </div>
+        </div>
+
+        <div class="dpad-container">
+            <div class="dpad-row"><button class="btn btn-dir" id="btn-up">▲</button></div>
+            <div class="dpad-row">
+                <button class="btn btn-dir" id="btn-left">◀</button>
+                <button class="btn btn-center" id="btn-space"></button>
+                <button class="btn btn-dir" id="btn-right">▶</button>
+            </div>
+            <div class="dpad-row"><button class="btn btn-dir" id="btn-down">▼</button></div>
+        </div>
+    </div>
+
+    <div class="controls-hint" id="controls-hint">Загрузка...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
+            authDomain: "retro-snake-94402.firebaseapp.com",
+            projectId: "retro-snake-94402",
+            storageBucket: "retro-snake-94402.firebasestorage.app",
+            messagingSenderId: "176962387007",
+            appId: "1:176962387007:web:15abe95b45d9f6f9a54c8a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const hiScoreElement = document.getElementById("hi-score");
+        const hintElement = document.getElementById("controls-hint");
+        const timerContainer = document.getElementById("timer-container");
+        const timerBar = document.getElementById("timer-bar");
+        
+        const nameOverlay = document.getElementById("nameOverlay");
+        const nameInput = document.getElementById("nameInput");
+        const overlayLabel = document.getElementById("overlayLabel");
+        const btnSaveName = document.getElementById("btnSaveName");
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [{x: 10, y: 10}];
+        let food = {x: 5, y: 5};
+        
+        let foodType = "REGULAR"; 
+        let flashToggle = true, flashCounter = 0;
+        let bonusTimer = 0;
+        const maxBigFoodTime = 8000;
+        const maxShrinkTime = 4000; 
+        
+        let dx = 1, dy = 0, score = 0;
+        
+        let hiScore = localStorage.getItem("snake_hi_score_v11") || 0;
+        let playerName = localStorage.getItem("snake_player_name") || "PLAYER";
+        let bestPlayerName = localStorage.getItem("snake_best_player") || "---";
+
+        let isPaused = true, gameOver = false, aiMode = false;
+        let usedAIThisSession = false; 
+        let currentSpeedMode = 1; 
+        const speeds = [150, 100, 60]; 
+        let transparentWalls = false; 
+        let soundEnabled = localStorage.getItem("snake_sound_enabled") !== "false"; 
+        let currentLang = "RU";
+
+        let cheatSequence = [];
+        const targetCheat = ["UP", "UP", "DOWN"];
+
+        const i18n = {
+            RU: {
+                score: "СЧЕТ", hi: "РЕКОРД", bestBy: "ОТ", pause: "ПАУЗА", gameOver: "ФИНИШ", settings: "ОПЦИИ",
+                continue: "ИГРАТЬ", newGame: "ЗАНОВО", speed: "СКОРОСТЬ", walls: "СТЕНЫ",
+                sound: "ЗВУК", lang: "ЯЗЫК", name: "ИМЯ", speedModes: ["ЛЕГКО", "НОРМ", "АД"],
+                wallModes: ["СМЕРТЬ", "СКВОЗЬ"], toggleModes: ["ВЫКЛ", "ВКЛ"], hintHtml: "▲▼-ВЫБОР | ЦЕНТР-ОК/ПАУЗА | ◀▶-ИЗМ",
+                records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "GLOBAL TOP 10", enterName: "ВВЕДИТЕ ИМЯ:"
+            },
+            EN: {
+                score: "SCORE", hi: "BEST", bestBy: "BY", pause: "PAUSE", gameOver: "GAME OVER", settings: "SETUP",
+                continue: "PLAY", newGame: "RETRY", speed: "SPEED", walls: "WALLS",
+                sound: "AUDIO", lang: "LANG", name: "NAME", speedModes: ["EASY", "NORM", "HELL"],
+                wallModes: ["DEATH", "WRAP"], toggleModes: ["OFF", "ON"], hintHtml: "▲▼-MOVE | CENTER-PAUSE | ◀▶-EDIT",
+                records: "RECORDS", loading: "LOADING...", globalTop: "GLOBAL TOP 10", enterName: "ENTER NAME:"
+            }
+        };
+
+        let currentScreen = "MAIN", mainMenuSelection = 0, settingsMenuSelection = 0;
+        const totalSettingsOptions = 5; 
+        let gameInterval = null;
+        let audioCtx = null;
+        let globalTopTen = []; 
+        let isLoadingLeaderboard = false;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === "eat") {
+                osc.type = "square";
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === "bigEat") {
+                osc.type = "triangle";
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === "shrinkEat") {
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (type === "die") {
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }
+        }
+
+        async function sendScoreToFirebase(finalScore) {
+            const finalName = usedAIThisSession ? "AI" : playerName;
+            try {
+                await addDoc(collection(db, "global_leaderboard"), {
+                    playerName: finalName,
+                    score: finalScore,
+                    timestamp: new Date()
+                });
+                await loadBestSingleScore(); 
+            } catch (e) { console.error("Error saving score: ", e); }
+        }
+
+        async function loadBestSingleScore() {
+            try {
+                const q = query(collection(db, "global_leaderboard"), orderBy("score", "desc"), limit(1));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const bestDoc = querySnapshot.docs[0].data();
+                    hiScore = bestDoc.score;
+                    bestPlayerName = bestDoc.playerName;
+                    localStorage.setItem("snake_hi_score_v11", hiScore);
+                    localStorage.setItem("snake_best_player", bestPlayerName);
+                    updateHUD();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadTopTen() {
+            isLoadingLeaderboard = true;
+            try {
+                const q = query(collection(db, "global_leaderboard"), orderBy("score", "desc"), limit(10));
+                const querySnapshot = await getDocs(q);
+                globalTopTen = [];
+                querySnapshot.forEach((doc) => {
+                    globalTopTen.push(doc.data());
+                });
+            } catch (e) { console.error(e); }
+            isLoadingLeaderboard = false;
+        }
+
+        function updateHUD() {
+            const t = i18n[currentLang];
+            const aiTag = aiMode ? " *AI*" : "";
+            scoreElement.innerText = `${t.score}:${String(score).padStart(3, '0')}${aiTag}`;
+            hiScoreElement.innerText = `${t.hi}:${hiScore} ${t.bestBy} ${bestPlayerName}`;
+            hintElement.innerText = t.hintHtml;
+        }
+
+        function makeAIMove() {
+            const head = snake[0];
+            const queue = [ [head.x, head.y, []] ];
+            const visited = Array.from({ length: tileCount }, () => Array(tileCount).fill(false));
+            visited[head.x][head.y] = true;
+
+            for (let i = 0; i < snake.length - 1; i++) {
+                visited[snake[i].x][snake[i].y] = true;
+            }
+
+            const directions = [
+                { x: 0, y: -1, name: "UP" },
+                { x: 0, y: 1, name: "DOWN" },
+                { x: -1, y: 0, name: "LEFT" },
+                { x: 1, y: 0, name: "RIGHT" }
+            ];
+
+            let pathToFood = null;
+
+            while (queue.length > 0) {
+                const [cx, cy, path] = queue.shift();
+
+                if (cx === food.x && cy === food.y) {
+                    pathToFood = path;
+                    break;
+                }
+
+                for (const d of directions) {
+                    let nx = cx + d.x;
+                    let ny = cy + d.y;
+
+                    if (transparentWalls) {
+                        if (nx < 0) nx = tileCount - 1; if (nx >= tileCount) nx = 0;
+                        if (ny < 0) ny = tileCount - 1; if (ny >= tileCount) ny = 0;
+                    } else {
+                        if (nx < 0 || nx >= tileCount || ny < 0 || ny >= tileCount) continue;
+                    }
+
+                    if (!visited[nx][ny]) {
+                        visited[nx][ny] = true;
+                        queue.push([nx, ny, [...path, d.name]]);
+                    }
+                }
+            }
+
+            let nextMove = null;
+            if (pathToFood && pathToFood.length > 0) {
+                nextMove = pathToFood[0];
+            } else {
+                for (const d of directions) {
+                    if (snake.length > 1 && ((d.name === "UP" && dy === 1) || (d.name === "DOWN" && dy === -1) || (d.name === "LEFT" && dx === 1) || (d.name === "RIGHT" && dx === -1))) continue;
+
+                    let nx = head.x + d.x;
+                    let ny = head.y + d.y;
+
+                    if (transparentWalls) {
+                        if (nx < 0) nx = tileCount - 1; if (nx >= tileCount) nx = 0;
+                        if (ny < 0) ny = tileCount - 1; if (ny >= tileCount) ny = 0;
+                    } else {
+                        if (nx < 0 || nx >= tileCount || ny < 0 || ny >= tileCount) continue;
+                    }
+
+                    let hitsSelf = false;
+                    for (let i = 0; i < snake.length - 1; i++) {
+                        if (snake[i].x === nx && snake[i].y === ny) hitsSelf = true;
+                    }
+
+                    if (!hitsSelf) {
+                        nextMove = d.name;
+                        break;
+                    }
+                }
+            }
+
+            if (nextMove) {
+                if (nextMove === "UP") { dx = 0; dy = -1; }
+                if (nextMove === "DOWN") { dx = 0; dy = 1; }
+                if (nextMove === "LEFT") { dx = -1; dy = 0; }
+                if (nextMove === "RIGHT") { dx = 1; dy = 0; }
+            }
+        }
+
+        function gameLoop() {
+            clearCanvas();
+            const t = i18n[currentLang];
+            flashCounter++; if (flashCounter % 3 === 0) flashToggle = !flashToggle;
+
+            if (isPaused) { 
+                timerContainer.style.visibility = "hidden";
+                drawSnake(); drawFood(); 
+                
+                if (currentScreen === "MAIN") {
+                    if (gameOver) drawPixelMenu(t.gameOver);
+                    else drawPixelMenu(t.pause);
+                }
+                else if (currentScreen === "SETTINGS") drawPixelMenu(t.settings);
+                else if (currentScreen === "LEADERBOARD") drawLeaderboardScreen();
+                return; 
+            }
+
+            if (foodType !== "REGULAR") {
+                bonusTimer -= speeds[currentSpeedMode];
+                timerContainer.style.visibility = "visible";
+                
+                const maxTime = (foodType === "BIG") ? maxBigFoodTime : maxShrinkTime;
+                const percentage = Math.max(0, (bonusTimer / maxTime) * 100);
+                timerBar.style.width = percentage + "%";
+                
+                if (bonusTimer <= 0) { 
+                    foodType = "REGULAR"; 
+                    timerContainer.style.visibility = "hidden";
+                    generateFood(); 
+                }
+            } else {
+                timerContainer.style.visibility = "hidden";
+            }
+
+            if (aiMode) makeAIMove();
+
+            moveSnake();
+            if (!gameOver) { checkCollision(); drawFood(); drawSnake(); }
+        }
+
+        function updateTicker() {
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, speeds[currentSpeedMode]);
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "#9bbc0f"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "rgba(15, 56, 15, 0.05)";
+            for (let i = 0; i < tileCount; i++) {
+                ctx.beginPath(); ctx.moveTo(i*20,0); ctx.lineTo(i*20,400); ctx.moveTo(0,i*20); ctx.lineTo(400,i*20); ctx.stroke();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach((part, i) => {
+                ctx.fillStyle = "#0f380f"; ctx.fillRect(part.x * 20 + 1, part.y * 20 + 1, 18, 18);
+                if (i === 0) { ctx.fillStyle = "#9bbc0f"; ctx.fillRect(part.x * 20 + 4, part.y * 20 + 4, 4, 4); }
+            });
+        }
+
+        function drawFood() {
+            if (foodType !== "REGULAR" && !flashToggle) return; 
+            
+            if (foodType === "REGULAR") {
+                ctx.fillStyle = "#d81b60";
+                ctx.fillRect(food.x * 20 + 3, food.y * 20 + 3, 14, 14);
+            } else if (foodType === "BIG") {
+                ctx.fillStyle = "#ffd700"; 
+                ctx.fillRect(food.x * 20 + 1, food.y * 20 + 1, 18, 18);
+                ctx.fillStyle = "#0f380f"; 
+                ctx.fillRect(food.x * 20 + 4, food.y * 20 + 4, 12, 12);
+                ctx.fillStyle = "#ffd700";
+                ctx.fillRect(food.x * 20 + 7, food.y * 20 + 7, 6, 6);
+            } else if (foodType === "SHRINK") {
+                ctx.fillStyle = "#1e88e5"; 
+                ctx.fillRect(food.x * 20 + 7, food.y * 20 + 2, 6, 4);  
+                ctx.fillRect(food.x * 20 + 4, food.y * 20 + 6, 12, 12); 
+                ctx.fillStyle = "#9bbc0f"; 
+                ctx.fillRect(food.x * 20 + 6, food.y * 20 + 8, 8, 3);
+            }
+        }
+
+        function drawPixelMenu(title) {
+            const t = i18n[currentLang];
+            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 40, 360, 320);
+            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 46, 348, 308);
+            ctx.fillStyle = "#9bbc0f"; ctx.font = "12px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.fillText(title, 200, 80);
+            ctx.fillRect(40, 100, 320, 2);
+
+            ctx.font = "10px 'Press Start 2P'"; ctx.textAlign = "left";
+            if (currentScreen === "MAIN") {
+                let options = [gameOver ? t.newGame : t.continue, t.settings, t.records];
+                let positions = [160, 210, 260];
+                
+                options.forEach((opt, idx) => {
+                    ctx.fillText(mainMenuSelection === idx ? ">" : " ", 60, positions[idx]);
+                    ctx.fillText(opt, 90, positions[idx]);
+                });
+            } else if (currentScreen === "SETTINGS") {
+                let items = [
+                    `${t.speed}:${t.speedModes[currentSpeedMode]}`,
+                    `${t.walls}:${transparentWalls ? t.wallModes[1] : t.wallModes[0]}`,
+                    `${t.sound}:${soundEnabled ? t.toggleModes[1] : t.toggleModes[0]}`,
+                    `${t.lang}:${currentLang}`,
+                    `${t.name}:${playerName}`
+                ];
+                items.forEach((txt, i) => {
+                    let y = 130 + (i * 38);
+                    if (settingsMenuSelection === i) ctx.fillText(">", 40, y);
+                    ctx.fillText(txt, 70, y);
+                });
+            }
+        }
+
+        function drawLeaderboardScreen() {
+            const t = i18n[currentLang];
+            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
+            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
+            ctx.fillStyle = "#9bbc0f"; ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.fillText(t.globalTop, 200, 45);
+            ctx.fillRect(40, 55, 320, 2);
+
+            ctx.font = "9px 'Press Start 2P'"; ctx.textAlign = "left";
+            if (isLoadingLeaderboard) {
+                ctx.textAlign = "center";
+                ctx.fillText(t.loading, 200, 200);
+            } else {
+                if (globalTopTen.length === 0) {
+                    ctx.textAlign = "center";
+                    ctx.fillText("EMPTY", 200, 200);
+                } else {
+                    globalTopTen.forEach((entry, idx) => {
+                        let y = 85 + (idx * 26);
+                        let num = String(idx + 1).padStart(2, '0');
+                        let pName = (entry.playerName || "ANON").substring(0, 8).padEnd(8, ' ');
+                        let pScore = String(entry.score).padStart(4, '0');
+                        ctx.fillText(`${num}.${pName} : ${pScore}`, 50, y);
+                    });
+                }
+            }
+            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "8px 'Press Start 2P'";
+            ctx.fillText("<- BACK (CENTER BUTTON)", 200, 360);
+        }
+
+        function openNameInput() {
+            overlayLabel.innerText = i18n[currentLang].enterName;
+            nameInput.value = playerName;
+            nameOverlay.style.display = "flex";
+            currentScreen = "EDIT_NAME";
+            setTimeout(() => nameInput.focus(), 50); 
+        }
+
+        function saveNameInput() {
+            let val = nameInput.value.trim().toUpperCase();
+            if (val === "") val = "PLAYER";
+            playerName = val.substring(0, 8);
+            localStorage.setItem("snake_player_name", playerName);
+            nameOverlay.style.display = "none";
+            currentScreen = "SETTINGS";
+            updateHUD();
+        }
+
+        btnSaveName.onclick = (e) => { e.preventDefault(); saveNameInput(); };
+        nameInput.onkeydown = (e) => {
+            if (e.key === "Enter") { e.preventDefault(); saveNameInput(); }
+        };
+
+        function moveSnake() {
+            let h = { x: snake[0].x + dx, y: snake[0].y + dy };
+            if (transparentWalls) {
+                if (h.x < 0) h.x = 19; if (h.x > 19) h.x = 0;
+                if (h.y < 0) h.y = 19; if (h.y > 19) h.y = 0;
+            }
+            snake.unshift(h);
+            
+            if (h.x === food.x && h.y === food.y) {
+                if (foodType === "REGULAR") { playSound("eat"); score += 10; } 
+                else if (foodType === "BIG") { playSound("bigEat"); score += 30; } 
+                else if (foodType === "SHRINK") {
+                    playSound("shrinkEat");
+                    let newLength = Math.max(1, Math.floor(snake.length / 2));
+                    while (snake.length > newLength) { snake.pop(); }
+                }
+                foodType = "REGULAR"; timerContainer.style.visibility = "hidden";
+                updateHUD(); generateFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function generateFood() {
+            food = { x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20) };
+            let rand = Math.random();
+            if (rand < 0.05) { foodType = "SHRINK"; bonusTimer = maxShrinkTime; } 
+            else if (rand < 0.15) { foodType = "BIG"; bonusTimer = maxBigFoodTime; } 
+            else { foodType = "REGULAR"; }
+        }
+
+        function checkCollision() {
+            let h = snake[0];
+            if (!transparentWalls && (h.x<0 || h.x>19 || h.y<0 || h.y>19)) endGame();
+            for(let i=1; i<snake.length; i++) if(h.x===snake[i].x && h.y===snake[i].y) endGame();
+        }
+
+        function endGame() {
+            playSound("die");
+            gameOver = true; 
+            isPaused = true; 
+            currentScreen = "MAIN"; 
+            mainMenuSelection = 0;
+            updateHUD();
+            sendScoreToFirebase(score); 
+        }
+
+        async function handleCenter() {
+            initAudio();
+
+            // Если открыто окно ввода имени, центральная кнопка выполняет сохранение
+            if (currentScreen === "EDIT_NAME") {
+                saveNameInput();
+                return;
+            }
+
+            if (!isPaused && !gameOver && cheatSequence.length === 3 && cheatSequence.every((val, i) => val === targetCheat[i])) {
+                aiMode = !aiMode; 
+                if (aiMode) usedAIThisSession = true; 
+                updateHUD(); cheatSequence = []; return; 
+            }
+            cheatSequence = []; 
+
+            if (!isPaused) { isPaused = true; return; }
+            
+            if (isPaused) {
+                if (currentScreen === "MAIN") {
+                    if (mainMenuSelection === 0) {
+                        if (gameOver) { reset(); } else { isPaused = false; }
+                    } 
+                    else if (mainMenuSelection === 1) { currentScreen = "SETTINGS"; settingsMenuSelection = 0; }
+                    else if (mainMenuSelection === 2) { currentScreen = "LEADERBOARD"; loadTopTen(); }
+                } else if (currentScreen === "SETTINGS") {
+                    currentScreen = "MAIN"; 
+                } else if (currentScreen === "LEADERBOARD") {
+                    currentScreen = "MAIN";
+                }
+                return;
+            }
+        }
+
+        function reset() {
+            snake = [{x: 10, y: 10}]; dx = 1; dy = 0; score = 0; gameOver = false; isPaused = false; foodType = "REGULAR";
+            aiMode = false; usedAIThisSession = false; 
+            timerContainer.style.visibility = "hidden"; generateFood(); updateHUD(); cheatSequence = [];
+        }
+
+        function handleInput(act) {
+            if (currentScreen === "EDIT_NAME") return; 
+            initAudio();
+            if (!isPaused) {
+                cheatSequence.push(act); if (cheatSequence.length > 3) cheatSequence.shift(); 
+                if (aiMode) return; 
+                if (act==="UP" && dy===0) { dx=0; dy=-1; }
+                if (act==="DOWN" && dy===0) { dx=0; dy=1; }
+                if (act==="LEFT" && dx===0) { dx=-1; dy=0; }
+                if (act==="RIGHT" && dx===0) { dx=1; dy=0; }
+                return;
+            }
+            
+            if (currentScreen === "MAIN") {
+                if (act==="UP") mainMenuSelection = (mainMenuSelection - 1 + 3) % 3;
+                if (act==="DOWN") mainMenuSelection = (mainMenuSelection + 1) % 3;
+            } else if (currentScreen === "SETTINGS") {
+                if (act==="UP") settingsMenuSelection = (settingsMenuSelection-1+totalSettingsOptions)%totalSettingsOptions;
+                if (act==="DOWN") settingsMenuSelection = (settingsMenuSelection+1)%totalSettingsOptions;
+                if (act==="LEFT" || act==="RIGHT") {
+                    let s = settingsMenuSelection;
+                    if (s===0) { currentSpeedMode = (currentSpeedMode + (act==="RIGHT"?1:2)) % 3; updateTicker(); }
+                    if (s===1) transparentWalls = !transparentWalls;
+                    if (s===2) { soundEnabled = !soundEnabled; localStorage.setItem("snake_sound_enabled", soundEnabled); }
+                    if (s===3) { currentLang = (currentLang==="RU") ? "EN" : "RU"; updateHUD(); }
+                    if (s===4) { openNameInput(); }
+                }
+            }
+        }
+
+        window.addEventListener("keydown", e => {
+            if (e.key === "Enter" || e.key === " ") {
+                handleCenter();
+                return;
+            }
+            if (currentScreen === "EDIT_NAME") return; 
+            if (e.key === "ArrowUp") handleInput("UP");
+            if (e.key === "ArrowDown") handleInput("DOWN");
+            if (e.key === "ArrowLeft") handleInput("LEFT");
+            if (e.key === "ArrowRight") handleInput("RIGHT");
+        });
+
+        const bind = (id, act) => {
+            const element = document.getElementById(id);
+            element.onclick = (e) => { e.preventDefault(); handleInput(act); };
+            element.ontouchstart = (e) => { e.preventDefault(); handleInput(act); };
+        };
+        bind("btn-up", "UP"); bind("btn-down", "DOWN"); bind("btn-left", "LEFT"); bind("btn-right", "RIGHT");
+        
+        const centerBtn = document.getElementById("btn-space");
+        centerBtn.onclick = (e) => { e.preventDefault(); handleCenter(); };
+        centerBtn.ontouchstart = (e) => { e.preventDefault(); handleCenter(); };
+
+        document.fonts.ready.then(() => {
+            updateTicker();
+            loadBestSingleScore(); 
+            updateHUD();
+            generateFood();
+        });
+    </script>
+</body>
+</html>
