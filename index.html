@@ -64,15 +64,15 @@
     <div class="phone-wrapper">
         <div class="screen">
             <div class="hud">
-                <span id="score">SCORE: 000</span>
-                <span id="hi-score">BEST: LOADING...</span>
+                <span id="score"></span>
+                <span id="hi-score"></span>
             </div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             
             <div class="name-input-overlay" id="nameOverlay">
-                <label id="overlayLabel">ВВЕДИТЕ ИМЯ:</label>
+                <label id="overlayLabel"></label>
                 <input type="text" id="nameInput" maxlength="8" autofocus autocomplete="off">
-                <button id="btnSaveName">OK / SAVE</button>
+                <button id="btnSaveName"></button>
             </div>
 
             <div class="timer-bar-container" id="timer-container">
@@ -91,12 +91,13 @@
         </div>
     </div>
 
-    <div class="controls-hint" id="controls-hint">Загрузка...</div>
+    <div class="controls-hint" id="controls-hint"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
+        // Важно: настройте правила безопасности (Rules) в Firebase Console для защиты от накрутки извне.
         const firebaseConfig = {
             apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
             authDomain: "retro-snake-94402.firebaseapp.com",
@@ -134,7 +135,10 @@
         const maxBigFoodTime = 8000;
         const maxShrinkTime = 4000; 
         
-        let dx = 1, dy = 0, score = 0;
+        let dx = 1, dy = 0;
+        let nextDx = 1, nextDy = 0; // Буфер направления для защиты от double-turn бага
+        let score = 0;
+        let isGameSubmitting = false; 
         
         let hiScore = localStorage.getItem("snake_hi_score_v11") || 0;
         let playerName = localStorage.getItem("snake_player_name") || "PLAYER";
@@ -157,14 +161,16 @@
                 continue: "ИГРАТЬ", newGame: "ЗАНОВО", speed: "СКОРОСТЬ", walls: "СТЕНЫ",
                 sound: "ЗВУК", lang: "ЯЗЫК", name: "ИМЯ", speedModes: ["ЛЕГКО", "НОРМ", "АД"],
                 wallModes: ["СМЕРТЬ", "СКВОЗЬ"], toggleModes: ["ВЫКЛ", "ВКЛ"], hintHtml: "▲▼-ВЫБОР | ЦЕНТР-ОК/ПАУЗА | ◀▶-ИЗМ",
-                records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "GLOBAL TOP 10", enterName: "ВВЕДИТЕ ИМЯ:"
+                records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "GLOBAL TOP 10", enterName: "ВВЕДИТЕ ИМЯ:",
+                empty: "ПУСТО", back: "<- НАЗАД (ЦЕНТР. КНОПКА)", saveBtn: "OK / СОХРАНИТЬ"
             },
             EN: {
                 score: "SCORE", hi: "BEST", bestBy: "BY", pause: "PAUSE", gameOver: "GAME OVER", settings: "SETUP",
                 continue: "PLAY", newGame: "RETRY", speed: "SPEED", walls: "WALLS",
                 sound: "AUDIO", lang: "LANG", name: "NAME", speedModes: ["EASY", "NORM", "HELL"],
                 wallModes: ["DEATH", "WRAP"], toggleModes: ["OFF", "ON"], hintHtml: "▲▼-MOVE | CENTER-PAUSE | ◀▶-EDIT",
-                records: "RECORDS", loading: "LOADING...", globalTop: "GLOBAL TOP 10", enterName: "ENTER NAME:"
+                records: "RECORDS", loading: "LOADING...", globalTop: "GLOBAL TOP 10", enterName: "ENTER NAME:",
+                empty: "EMPTY", back: "<- BACK (CENTER BUTTON)", saveBtn: "OK / SAVE"
             }
         };
 
@@ -220,15 +226,18 @@
         }
 
         async function sendScoreToFirebase(finalScore) {
+            if (isGameSubmitting || finalScore <= 0) return;
+            isGameSubmitting = true;
             const finalName = usedAIThisSession ? "AI" : playerName;
             try {
                 await addDoc(collection(db, "global_leaderboard"), {
                     playerName: finalName,
-                    score: finalScore,
+                    score: Number(finalScore),
                     timestamp: new Date()
                 });
                 await loadBestSingleScore(); 
             } catch (e) { console.error("Error saving score: ", e); }
+            finally { isGameSubmitting = false; }
         }
 
         async function loadBestSingleScore() {
@@ -263,7 +272,12 @@
             const t = i18n[currentLang];
             const aiTag = aiMode ? " *AI*" : "";
             scoreElement.innerText = `${t.score}:${String(score).padStart(3, '0')}${aiTag}`;
-            hiScoreElement.innerText = `${t.hi}:${hiScore} ${t.bestBy} ${bestPlayerName}`;
+            
+            if (bestPlayerName === "---") {
+                hiScoreElement.innerText = `${t.hi}: ${t.loading}`;
+            } else {
+                hiScoreElement.innerText = `${t.hi}:${hiScore} ${t.bestBy} ${bestPlayerName}`;
+            }
             hintElement.innerText = t.hintHtml;
         }
 
@@ -342,10 +356,10 @@
             }
 
             if (nextMove) {
-                if (nextMove === "UP") { dx = 0; dy = -1; }
-                if (nextMove === "DOWN") { dx = 0; dy = 1; }
-                if (nextMove === "LEFT") { dx = -1; dy = 0; }
-                if (nextMove === "RIGHT") { dx = 1; dy = 0; }
+                if (nextMove === "UP") { nextDx = 0; nextDy = -1; }
+                if (nextMove === "DOWN") { nextDx = 0; nextDy = 1; }
+                if (nextMove === "LEFT") { nextDx = -1; nextDy = 0; }
+                if (nextMove === "RIGHT") { nextDx = 1; nextDy = 0; }
             }
         }
 
@@ -385,6 +399,9 @@
             }
 
             if (aiMode) makeAIMove();
+
+            dx = nextDx;
+            dy = nextDy;
 
             moveSnake();
             if (!gameOver) { checkCollision(); drawFood(); drawSnake(); }
@@ -480,7 +497,7 @@
             } else {
                 if (globalTopTen.length === 0) {
                     ctx.textAlign = "center";
-                    ctx.fillText("EMPTY", 200, 200);
+                    ctx.fillText(t.empty, 200, 200);
                 } else {
                     globalTopTen.forEach((entry, idx) => {
                         let y = 85 + (idx * 26);
@@ -492,11 +509,13 @@
                 }
             }
             ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "8px 'Press Start 2P'";
-            ctx.fillText("<- BACK (CENTER BUTTON)", 200, 360);
+            ctx.fillText(t.back, 200, 360);
         }
 
         function openNameInput() {
-            overlayLabel.innerText = i18n[currentLang].enterName;
+            const t = i18n[currentLang];
+            overlayLabel.innerText = t.enterName;
+            btnSaveName.innerText = t.saveBtn; 
             nameInput.value = playerName;
             nameOverlay.style.display = "flex";
             currentScreen = "EDIT_NAME";
@@ -542,7 +561,21 @@
         }
 
         function generateFood() {
-            food = { x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20) };
+            let validPositions = [];
+            for (let x = 0; x < tileCount; x++) {
+                for (let y = 0; y < tileCount; y++) {
+                    let isOccupied = snake.some(part => part.x === x && part.y === y);
+                    if (!isOccupied) validPositions.push({x, y});
+                }
+            }
+
+            if (validPositions.length === 0) {
+                endGame();
+                return;
+            }
+
+            food = validPositions[Math.floor(Math.random() * validPositions.length)];
+
             let rand = Math.random();
             if (rand < 0.05) { foodType = "SHRINK"; bonusTimer = maxShrinkTime; } 
             else if (rand < 0.15) { foodType = "BIG"; bonusTimer = maxBigFoodTime; } 
@@ -568,7 +601,6 @@
         async function handleCenter() {
             initAudio();
 
-            // Если открыто окно ввода имени, центральная кнопка выполняет сохранение
             if (currentScreen === "EDIT_NAME") {
                 saveNameInput();
                 return;
@@ -600,7 +632,10 @@
         }
 
         function reset() {
-            snake = [{x: 10, y: 10}]; dx = 1; dy = 0; score = 0; gameOver = false; isPaused = false; foodType = "REGULAR";
+            snake = [{x: 10, y: 10}]; 
+            dx = 1; dy = 0; 
+            nextDx = 1; nextDy = 0; 
+            score = 0; gameOver = false; isPaused = false; foodType = "REGULAR";
             aiMode = false; usedAIThisSession = false; 
             timerContainer.style.visibility = "hidden"; generateFood(); updateHUD(); cheatSequence = [];
         }
@@ -611,10 +646,11 @@
             if (!isPaused) {
                 cheatSequence.push(act); if (cheatSequence.length > 3) cheatSequence.shift(); 
                 if (aiMode) return; 
-                if (act==="UP" && dy===0) { dx=0; dy=-1; }
-                if (act==="DOWN" && dy===0) { dx=0; dy=1; }
-                if (act==="LEFT" && dx===0) { dx=-1; dy=0; }
-                if (act==="RIGHT" && dx===0) { dx=1; dy=0; }
+                
+                if (act==="UP" && dy===0) { nextDx=0; nextDy=-1; }
+                if (act==="DOWN" && dy===0) { nextDx=0; nextDy=1; }
+                if (act==="LEFT" && dx===0) { nextDx=-1; nextDy=0; }
+                if (act==="RIGHT" && dx===0) { nextDx=1; nextDy=0; }
                 return;
             }
             
@@ -637,14 +673,15 @@
 
         window.addEventListener("keydown", e => {
             if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault(); 
                 handleCenter();
                 return;
             }
             if (currentScreen === "EDIT_NAME") return; 
-            if (e.key === "ArrowUp") handleInput("UP");
-            if (e.key === "ArrowDown") handleInput("DOWN");
-            if (e.key === "ArrowLeft") handleInput("LEFT");
-            if (e.key === "ArrowRight") handleInput("RIGHT");
+            if (e.key === "ArrowUp") { e.preventDefault(); handleInput("UP"); }
+            if (e.key === "ArrowDown") { e.preventDefault(); handleInput("DOWN"); }
+            if (e.key === "ArrowLeft") { e.preventDefault(); handleInput("LEFT"); }
+            if (e.key === "ArrowRight") { e.preventDefault(); handleInput("RIGHT"); }
         });
 
         const bind = (id, act) => {
