@@ -97,7 +97,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-        // Важно: настройте правила безопасности (Rules) в Firebase Console для защиты от накрутки извне.
         const firebaseConfig = {
             apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
             authDomain: "retro-snake-94402.firebaseapp.com",
@@ -136,7 +135,7 @@
         const maxShrinkTime = 4000; 
         
         let dx = 1, dy = 0;
-        let nextDx = 1, nextDy = 0; // Буфер направления для защиты от double-turn бага
+        let nextDx = 1, nextDy = 0; 
         let score = 0;
         let isGameSubmitting = false; 
         
@@ -227,11 +226,12 @@
 
         async function sendScoreToFirebase(finalScore) {
             if (isGameSubmitting || finalScore <= 0) return;
+            if (usedAIThisSession) return;
+            
             isGameSubmitting = true;
-            const finalName = usedAIThisSession ? "AI" : playerName;
             try {
                 await addDoc(collection(db, "global_leaderboard"), {
-                    playerName: finalName,
+                    playerName: playerName,
                     score: Number(finalScore),
                     timestamp: new Date()
                 });
@@ -502,9 +502,25 @@
                     globalTopTen.forEach((entry, idx) => {
                         let y = 85 + (idx * 26);
                         let num = String(idx + 1).padStart(2, '0');
-                        let pName = (entry.playerName || "ANON").substring(0, 8).padEnd(8, ' ');
+                        let rawName = (entry.playerName || "ANON").substring(0, 8);
                         let pScore = String(entry.score).padStart(4, '0');
-                        ctx.fillText(`${num}.${pName} : ${pScore}`, 50, y);
+                        
+                        ctx.fillText(`${num}. ${rawName}`, 50, y);
+                        
+                        let medal = "";
+                        if (idx === 0) medal = "🥇";
+                        if (idx === 1) medal = "🥈";
+                        if (idx === 2) medal = "🥉";
+                        
+                        if (medal !== "") {
+                            ctx.font = "12px Arial";
+                            // 50 (start) + 35 (01. ) + name width + 10px (1 visual space)
+                            let nameWidth = rawName.length * 9; 
+                            ctx.fillText(medal, 50 + 35 + nameWidth + 10, y + 2);
+                            ctx.font = "9px 'Press Start 2P'";
+                        }
+                        
+                        ctx.fillText(`: ${pScore}`, 250, y);
                     });
                 }
             }
