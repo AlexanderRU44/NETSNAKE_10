@@ -116,7 +116,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, limit, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
@@ -282,7 +282,7 @@
 
         function generateObstacles() {
             obstacles = [];
-            if (currentModeIdx !== 1) return; 
+            if (currentModeIdx !== 1) return; // Стены генерируются только для режима СТЕНЫ (теперь индекс 1)
             
             while (obstacles.length < 8) {
                 let obsX = Math.floor(Math.random() * tileCount);
@@ -376,39 +376,14 @@
             
             isGameSubmitting = true;
             try {
-                const docRef = doc(db, "global_leaderboard", playerName);
-                const docSnap = await getDoc(docRef);
-                const currentNewScore = Number(finalScore);
-                
-                if (docSnap.exists()) {
-                    const oldScore = Number(docSnap.data().score || 0);
-                    // Сравниваем строго как числа
-                    if (currentNewScore > oldScore) {
-                        await setDoc(docRef, {
-                            playerName: playerName,
-                            score: currentNewScore,
-                            timestamp: new Date()
-                        });
-                        console.log("Рекорд перезаписан!");
-                    } else {
-                        console.log("Новый счет не побил прошлый рекорд этого игрока.");
-                    }
-                } else {
-                    await setDoc(docRef, {
-                        playerName: playerName,
-                        score: currentNewScore,
-                        timestamp: new Date()
-                    });
-                    console.log("Новый игрок добавлен в базу!");
-                }
-                // Принудительно обновляем глобальный топ, чтобы изменения сразу применились на экране
+                await addDoc(collection(db, "global_leaderboard"), {
+                    playerName: playerName,
+                    score: Number(finalScore),
+                    timestamp: new Date()
+                });
                 await loadBestSingleScore(); 
-                await loadTopTen();
-            } catch (e) { 
-                console.error("Ошибка сохранения рекорда: ", e); 
-            } finally { 
-                isGameSubmitting = false; 
-            }
+            } catch (e) { console.error("Error saving score: ", e); }
+            finally { isGameSubmitting = false; }
         }
 
         async function loadBestSingleScore() {
@@ -417,7 +392,7 @@
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const bestDoc = querySnapshot.docs[0].data();
-                    hiScore = Number(bestDoc.score);
+                    hiScore = bestDoc.score;
                     bestPlayerName = bestDoc.playerName;
                     localStorage.setItem("snake_hi_score_v11", hiScore);
                     localStorage.setItem("snake_best_player", bestPlayerName);
@@ -495,6 +470,7 @@
                     let nx = cx + d.x;
                     let ny = cy + d.y;
 
+                    // В режиме ПРЕПЯТСТВИЕ (теперь индекс 2) стены смертельны. В остальных (0, 1, 3) — сквозные
                     if (currentModeIdx !== 2) {
                         if (nx < 0) nx = tileCount - 1; if (nx >= tileCount) nx = 0;
                         if (ny < 0) ny = tileCount - 1; if (ny >= tileCount) ny = 0;
@@ -617,7 +593,7 @@
         }
 
         function drawObstacles() {
-            if (currentModeIdx !== 1) return; 
+            if (currentModeIdx !== 1) return; // Стены отрисовываются только для режима СТЕНЫ (индекс 1)
             ctx.fillStyle = "#0f380f";
             obstacles.forEach(obs => {
                 ctx.fillRect(obs.x * 20 + 2, obs.y * 20 + 2, 16, 16);
@@ -668,6 +644,7 @@
                 ctx.fillStyle = "#ffd700"; 
                 ctx.fillRect(px + 5, py + 4, 10, 12);
                 ctx.fillRect(px + 4, py + 6, 12, 8);
+                ctx.fillRect(px + 6, py + 3, 8, 1);
                 ctx.fillRect(px + 6, py + 16, 8, 1);
                 ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 13, 2, 2);
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 6, py + 6, 2, 2); ctx.fillRect(px + 8, py + 6, 1, 1);
@@ -897,6 +874,7 @@
         function moveSnake() {
             let h = { x: snake[0].x + dx, y: snake[0].y + dy };
             
+            // В режиме ПРЕПЯТСТВИЕ (индекс 2) змейка не проходит сквозь границы экрана, а умирает
             if (currentModeIdx !== 2 || aiMode) {
                 if (h.x < 0) h.x = 19; if (h.x > 19) h.x = 0;
                 if (h.y < 0) h.y = 19; if (h.y > 19) h.y = 0;
@@ -992,12 +970,14 @@
             
             let h = snake[0];
             
+            // В режиме ПРЕПЯТСТВИЕ (индекс 2) добавляется смерть об внешние границы экрана
             if (currentModeIdx === 2) {
                 if (h.x < 0 || h.x > 19 || h.y < 0 || h.y > 19) { endGame(); return; }
             }
             
             for(let i=1; i<snake.length; i++) if(h.x===snake[i].x && h.y===snake[i].y) endGame();
             
+            // Столкновение со статичными блоками только в режиме СТЕНЫ (индекс 1)
             if (currentModeIdx === 1 && obstacles.some(obs => obs.x === h.x && obs.y === h.y)) endGame();
 
             if (ghostTrails.some(gt => gt.x === h.x && gt.y === h.y)) endGame();
@@ -1143,6 +1123,7 @@
             }
         }
 
+        // Клики по кнопкам экранного D-Pad
         document.getElementById("btn-up").onclick = () => { triggerVibration(); handleInput("UP"); };
         document.getElementById("btn-down").onclick = () => { triggerVibration(); handleInput("DOWN"); };
         document.getElementById("btn-left").onclick = () => { triggerVibration(); handleInput("LEFT"); };
@@ -1152,6 +1133,7 @@
         btnBackEl.onclick = () => { triggerVibration(); handleBackPress(); };
         btnSpaceEl.onclick = () => { triggerVibration(); handleCenter(); };
 
+        // Слушатель для клавиатуры ПК
         window.addEventListener("keydown", (e) => {
             if (currentScreen === "EDIT_NAME") return;
 
@@ -1176,6 +1158,7 @@
             else handleInput(action);
         });
 
+        // Инициализация при старте
         generateObstacles();
         loadBestSingleScore();
         updateTicker();
