@@ -378,26 +378,34 @@
             try {
                 const docRef = doc(db, "global_leaderboard", playerName);
                 const docSnap = await getDoc(docRef);
+                const currentNewScore = Number(finalScore);
                 
                 if (docSnap.exists()) {
-                    const oldScore = docSnap.data().score || 0;
-                    if (Number(finalScore) > Number(oldScore)) {
+                    const oldScore = Number(docSnap.data().score || 0);
+                    // Сравниваем строго как числа
+                    if (currentNewScore > oldScore) {
                         await setDoc(docRef, {
                             playerName: playerName,
-                            score: Number(finalScore),
+                            score: currentNewScore,
                             timestamp: new Date()
                         });
+                        console.log("Рекорд перезаписан!");
+                    } else {
+                        console.log("Новый счет не побил прошлый рекорд этого игрока.");
                     }
                 } else {
                     await setDoc(docRef, {
                         playerName: playerName,
-                        score: Number(finalScore),
+                        score: currentNewScore,
                         timestamp: new Date()
                     });
+                    console.log("Новый игрок добавлен в базу!");
                 }
+                // Принудительно обновляем глобальный топ, чтобы изменения сразу применились на экране
                 await loadBestSingleScore(); 
+                await loadTopTen();
             } catch (e) { 
-                console.error("Error saving score: ", e); 
+                console.error("Ошибка сохранения рекорда: ", e); 
             } finally { 
                 isGameSubmitting = false; 
             }
@@ -409,7 +417,7 @@
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const bestDoc = querySnapshot.docs[0].data();
-                    hiScore = bestDoc.score;
+                    hiScore = Number(bestDoc.score);
                     bestPlayerName = bestDoc.playerName;
                     localStorage.setItem("snake_hi_score_v11", hiScore);
                     localStorage.setItem("snake_best_player", bestPlayerName);
