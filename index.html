@@ -116,7 +116,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
@@ -167,9 +167,9 @@
         let score = 0;
         let isGameSubmitting = false; 
         
-        let hiScore = localStorage.getItem("snake_hi_score_v11") || 0;
+        let hiScore = 0;
         let playerName = localStorage.getItem("snake_player_name") || "PLAYER";
-        let bestPlayerName = localStorage.getItem("snake_best_player") || "---";
+        let bestPlayerName = "---";
 
         let isPaused = true, gameOver = false, aiMode = false;
         let usedAIThisSession = false; 
@@ -211,7 +211,7 @@
                 continue: "ИГРАТЬ", newGame: "ЗАНОВО", speed: "СКОРОСТЬ",
                 sound: "ЗВУК", lang: "ЯЗЫК", name: "ИМЯ", snakeColor: "ЗМЕЙКА", speedModes: ["ЛЕГКО", "НОРМ", "АД"],
                 toggleModes: ["ВЫКЛ", "ВКЛ"], 
-                records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "GLOBAL TOP 10", enterName: "ВВЕДИТЕ ИМЯ:",
+                records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "TOP 10", enterName: "ВВЕДИТЕ ИМЯ:",
                 empty: "ПУСТО", back: "BACK - В ГЛАВНОЕ МЕНЮ", saveBtn: "ЦЕНТР(ОК) - СОХРАНИТЬ",
                 tasksMenu: "ЗАДАНИЯ", tasksTitle: "ЗАДАНИЯ",
                 unknownTask: "???", secretTaskDesc: "СЕКРЕТНОЕ ЗАДАНИЕ",
@@ -247,7 +247,7 @@
                 continue: "PLAY", newGame: "RETRY", speed: "SPEED",
                 sound: "AUDIO", lang: "LANG", name: "NAME", snakeColor: "SNAKE", speedModes: ["EASY", "NORM", "HELL"],
                 toggleModes: ["OFF", "ON"], 
-                records: "RECORDS", loading: "LOADING...", globalTop: "GLOBAL TOP 10", enterName: "ENTER NAME:",
+                records: "RECORDS", loading: "LOADING...", globalTop: "TOP 10", enterName: "ENTER NAME:",
                 empty: "EMPTY", back: "BACK - TO MAIN MENU", saveBtn: "CENTER(OK) - SAVE",
                 tasksMenu: "TASKS", tasksTitle: "TASKS LIST",
                 unknownTask: "???", secretTaskDesc: "SECRET TASK",
@@ -310,7 +310,7 @@
 
         function generateObstacles() {
             obstacles = [];
-            if (currentModeIdx !== 1) return; // Стены генерируются только для режима СТЕНЫ (теперь индекс 1)
+            if (currentModeIdx !== 1) return; 
             
             while (obstacles.length < 8) {
                 let obsX = Math.floor(Math.random() * tileCount);
@@ -407,6 +407,7 @@
                 await addDoc(collection(db, "global_leaderboard"), {
                     playerName: playerName,
                     score: Number(finalScore),
+                    mode: Number(currentModeIdx), // Передаем режим в БД
                     timestamp: new Date()
                 });
                 await loadBestSingleScore(); 
@@ -415,15 +416,26 @@
         }
 
         async function loadBestSingleScore() {
+            // Загружаем локальный рекорд для текущего режима
+            hiScore = localStorage.getItem(`snake_hi_score_mode_${currentModeIdx}`) || 0;
+            bestPlayerName = localStorage.getItem(`snake_best_player_mode_${currentModeIdx}`) || "---";
+            updateHUD();
+
             try {
-                const q = query(collection(db, "global_leaderboard"), orderBy("score", "desc"), limit(1));
+                // Запрашиваем лучший результат из Firebase конкретно для текущего режима
+                const q = query(
+                    collection(db, "global_leaderboard"), 
+                    where("mode", "==", currentModeIdx),
+                    orderBy("score", "desc"), 
+                    limit(1)
+                );
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const bestDoc = querySnapshot.docs[0].data();
                     hiScore = bestDoc.score;
                     bestPlayerName = bestDoc.playerName;
-                    localStorage.setItem("snake_hi_score_v11", hiScore);
-                    localStorage.setItem("snake_best_player", bestPlayerName);
+                    localStorage.setItem(`snake_hi_score_mode_${currentModeIdx}`, hiScore);
+                    localStorage.setItem(`snake_best_player_mode_${currentModeIdx}`, bestPlayerName);
                     updateHUD();
                 }
             } catch (e) { console.error(e); }
@@ -432,7 +444,13 @@
         async function loadTopTen() {
             isLoadingLeaderboard = true;
             try {
-                const q = query(collection(db, "global_leaderboard"), orderBy("score", "desc"), limit(10));
+                // Выборка ТОП-10 результатов конкретно для текущего активного режима
+                const q = query(
+                    collection(db, "global_leaderboard"), 
+                    where("mode", "==", currentModeIdx),
+                    orderBy("score", "desc"), 
+                    limit(10)
+                );
                 const querySnapshot = await getDocs(q);
                 globalTopTen = [];
                 querySnapshot.forEach((doc) => {
@@ -498,7 +516,6 @@
                     let nx = cx + d.x;
                     let ny = cy + d.y;
 
-                    // В режиме ПРЕПЯТСТВИЕ (теперь индекс 2) стены смертельны. В остальных (0, 1, 3) — сквозные
                     if (currentModeIdx !== 2) {
                         if (nx < 0) nx = tileCount - 1; if (nx >= tileCount) nx = 0;
                         if (ny < 0) ny = tileCount - 1; if (ny >= tileCount) ny = 0;
@@ -622,7 +639,7 @@
         }
 
         function drawObstacles() {
-            if (currentModeIdx !== 1) return; // Стены отрисовываются только для режима СТЕНЫ (индекс 1)
+            if (currentModeIdx !== 1) return; 
             ctx.fillStyle = "#0f380f";
             obstacles.forEach(obs => {
                 ctx.fillRect(obs.x * 20 + 2, obs.y * 20 + 2, 16, 16);
@@ -777,8 +794,11 @@
             const t = i18n[currentLang];
             ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
             ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
-            ctx.fillText(t.globalTop, 200, 48);
+            ctx.fillStyle = "#9bbc0f"; ctx.font = "12px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            
+            // Выводим имя текущего режима в заголовке таблицы рекордов
+            const modeName = t.gameModes[currentModeIdx];
+            ctx.fillText(`${t.globalTop} [${modeName}]`, 200, 48);
             ctx.fillRect(40, 58, 320, 2);
 
             ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "left"; 
@@ -937,7 +957,6 @@
         function moveSnake() {
             let h = { x: snake[0].x + dx, y: snake[0].y + dy };
             
-            // В режиме ПРЕПЯТСТВИЕ (индекс 2) змейка не проходит сквозь границы экрана, а умирает
             if (currentModeIdx !== 2 || aiMode) {
                 if (h.x < 0) h.x = 19; if (h.x > 19) h.x = 0;
                 if (h.y < 0) h.y = 19; if (h.y > 19) h.y = 0;
@@ -1033,14 +1052,12 @@
             
             let h = snake[0];
             
-            // В режиме ПРЕПЯТСТВИЕ (индекс 2) добавляется смерть об внешние границы экрана
             if (currentModeIdx === 2) {
                 if (h.x < 0 || h.x > 19 || h.y < 0 || h.y > 19) { endGame(); return; }
             }
             
             for(let i=1; i<snake.length; i++) if(h.x===snake[i].x && h.y===snake[i].y) endGame();
             
-            // Столкновение со статичными блоками только в режиме СТЕНЫ (индекс 1)
             if (currentModeIdx === 1 && obstacles.some(obs => obs.x === h.x && obs.y === h.y)) endGame();
 
             if (ghostTrails.some(gt => gt.x === h.x && gt.y === h.y)) endGame();
@@ -1112,6 +1129,7 @@
             if (currentScreen === "MODES") {
                 currentModeIdx = modesMenuSelection;
                 updateHUD();
+                await loadBestSingleScore(); // Обновляем лучший результат под выбранный режим
                 reset(); 
                 return;
             }
@@ -1191,7 +1209,6 @@
             }
         }
 
-        // Клики по кнопкам экранного D-Pad
         document.getElementById("btn-up").onclick = () => { triggerVibration(); handleInput("UP"); };
         document.getElementById("btn-down").onclick = () => { triggerVibration(); handleInput("DOWN"); };
         document.getElementById("btn-left").onclick = () => { triggerVibration(); handleInput("LEFT"); };
@@ -1201,7 +1218,6 @@
         btnBackEl.onclick = () => { triggerVibration(); handleBackPress(); };
         btnSpaceEl.onclick = () => { triggerVibration(); handleCenter(); };
 
-        // Слушатель для клавиатуры ПК
         window.addEventListener("keydown", (e) => {
             if (currentScreen === "EDIT_NAME") return;
 
@@ -1226,7 +1242,6 @@
             else handleInput(action);
         });
 
-        // Инициализация при старте
         generateObstacles();
         loadBestSingleScore();
         updateTicker();
