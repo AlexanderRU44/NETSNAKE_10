@@ -61,10 +61,10 @@
             background: #444; border: 3px solid #222; color: #8bac0f;
         }
         .btn-center { 
-            width: 60px; height: 60px; margin: 3px; border-radius: 50%; font-size: 0.65rem; 
+            width: 60px; height: 60px; margin: 3px; border-radius: 12px; font-size: 0.8rem; 
             background: #4e8a10; border: 3px solid #2d520a; color: #fff;
         }
-        .btn-side { width: 60px; height: 35px; font-size: 0.45rem; border-radius: 6px; position: absolute; top: 15px; }
+        .btn-side { width: 60px; height: 35px; font-size: 0.6rem; border-radius: 6px; position: absolute; top: 15px; }
         
         #btn-menu { left: 45px; background: #a61c1c; border: 3px solid #6e1010; }
         #btn-back { right: 45px; background: #1e5fa8; border: 3px solid #113a6b; }
@@ -77,8 +77,8 @@
     <div class="phone-wrapper">
         <div class="screen">
             <div class="hud">
-                <span id="score"></span>
-                <span id="hi-score"></span>
+                <span id="score">СЧЕТ:0</span>
+                <span id="hi-score">РЕКОРД:227 [КЛАССИКА] ОТ PLAYER</span>
             </div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             
@@ -154,9 +154,9 @@
         let score = 0;
         let isGameSubmitting = false; 
         
-        let hiScore = 0;
+        let hiScore = 227;
         let playerName = localStorage.getItem("snake_player_name") || "PLAYER";
-        let bestPlayerName = "---";
+        let bestPlayerName = "PLAYER";
 
         let isPaused = true, gameOver = false, aiMode = false;
         let usedAIThisSession = false; 
@@ -207,7 +207,7 @@
                 tasksMenu: "ЗАДАНИЯ", tasksTitle: "ЗАДАНИЯ",
                 achievementsMenu: "ДОСТИЖЕНИЯ", achievementsTitle: "ДОСТИЖЕНИЯ",
                 unknownTask: "???", secretTaskDesc: "СЕКРЕТНОЕ ЗАДАНИЕ",
-                menu: "МЕНЮ", backBtn: "НАЗАД", ok: "ОК",
+                menu: "MENU", backBtn: "BACK", ok: "OK",
                 modesMenu: "РЕЖИМЫ", modesTitle: "ВЫБОР РЕЖИМА",
                 gameModes: ["КЛАССИКА", "СТЕНЫ", "ПРЕПЯТСТВИЕ", "ПРИЗРАК", "ДВИЖ. КАМНИ"],
                 aboutMenu: "О ИГРЕ", aboutTitle: "О ИГРЕ",
@@ -280,11 +280,8 @@
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                startBackgroundMusic();
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            startBackgroundMusic();
         }
 
         function startBackgroundMusic() {
@@ -308,7 +305,7 @@
             musicNode.loop = true;
             
             const musicGain = audioCtx.createGain();
-            musicGain.gain.setValueAtTime((isPaused || !soundEnabled) ? 0 : 0.6, audioCtx.currentTime); 
+            musicGain.gain.setValueAtTime(isPaused ? 0 : 0.6, audioCtx.currentTime); 
 
             musicNode.connect(musicGain);
             musicGain.connect(audioCtx.destination);
@@ -539,10 +536,7 @@
         }
 
         function updateButtonLabels() {
-            const t = i18n[currentLang];
-            btnMenuEl.innerText = t.menu;
-            btnBackEl.innerText = t.backBtn;
-            btnSpaceEl.innerText = t.ok;
+            // Text values are hardcoded in the HTML structure to save space in JS
         }
 
         function updateHUD() {
@@ -555,7 +549,7 @@
             } else {
                 hiScoreElement.innerText = `${t.hi}:${hiScore} ${t.bestBy} ${bestPlayerName}`;
             }
-            updateButtonLabels();
+            // Button labels are updated via hardcoding, but could use t.menu, t.backBtn, t.ok if needed.
         }
 
         function makeAIMove() {
@@ -1119,6 +1113,7 @@
             }
             cheatSequence = []; 
             if (currentScreen === "MAIN") {
+                let maxOpt = gameOver ? 6 : 7;
                 if (gameOver) {
                     if (mainMenuSelection === 0) reset();
                     else if (mainMenuSelection === 1) { currentScreen = "MODES"; modesMenuSelection = currentModeIdx; }
@@ -1155,8 +1150,9 @@
                 else if (s === 3) openNameInput();
                 else if (s === 4) { 
                     let nextColorIdx = (currentSnakeColorIdx + 1) % snakeColors.length;
+                    // Если следующий индекс ведет на ХАМЕЛЕОН (индекс 4), проверяем, разблокирован ли он
                     if (nextColorIdx === 4 && !isChameleonUnlocked) {
-                        nextColorIdx = 0; 
+                        nextColorIdx = 0; // Если закрыт, переключаемся сразу на начало списка (ТЕМНЫЙ)
                     }
                     currentSnakeColorIdx = nextColorIdx;
                     localStorage.setItem("snake_color_idx", currentSnakeColorIdx); 
