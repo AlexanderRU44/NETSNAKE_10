@@ -10,38 +10,74 @@
     
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        /* Базовые стили с поддержкой тем */
         body {
-            background-color: #222; color: #111; font-family: 'Press Start 2P', monospace;
+            font-family: 'Press Start 2P', monospace;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             min-height: 100vh; margin: 0; padding: 10px; overflow: hidden;
             touch-action: none; overscroll-behavior: none;
+            transition: background-color 0.3s, color 0.3s;
         }
-        h1 { color: #8bac0f; text-shadow: 0 0 5px rgba(139, 172, 15, 0.5); margin: 0 0 15px 0; font-size: 1.1rem; text-align: center; }
-        .phone-wrapper {
-            background: #333; padding: 15px; border-radius: 20px; box-shadow: inset 0 0 10px #000, 0 10px 20px rgba(0,0,0,0.5);
-            border: 4px solid #444; width: 100%; max-width: 410px; display: flex; flex-direction: column; gap: 15px;
-            position: relative;
-        }
-        .screen { background-color: #8bac0f; border: 8px solid #0f380f; padding: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.3); position: relative; }
-        .hud { display: flex; justify-content: space-between; font-size: 0.65rem; border-bottom: 2px solid #0f380f; padding-bottom: 8px; margin-bottom: 8px; color: #0f380f; }
-        canvas { background-color: #9bbc0f; display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
+        h1 { margin: 0 0 15px 0; font-size: 1.1rem; text-align: center; transition: color 0.3s, text-shadow 0.3s; }
         
-        .timer-bar-container { width: 100%; height: 10px; background: #8bac0f; border: 2px solid #0f380f; margin-top: 5px; visibility: hidden; }
-        .timer-bar { height: 100%; background: #0f380f; width: 100%; transition: width 0.1s linear; }
+        .phone-wrapper {
+            padding: 15px; border-radius: 20px; width: 100%; max-width: 410px; 
+            display: flex; flex-direction: column; gap: 15px; position: relative;
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* Светлая тема (Light Mode) */
+        body.light-theme { background-color: #f0f2f5; color: #333; }
+        body.light-theme h1 { color: #222; text-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
+        body.light-theme .phone-wrapper {
+            background: #e1e4e9; border: 4px solid #ccd1d9; 
+            box-shadow: inset 0 0 10px #fff, 0 10px 25px rgba(0,0,0,0.1);
+        }
+        body.light-theme .screen { background-color: #f7f9fa; border: 8px solid #2b3a4a; box-shadow: inset 0 0 15px rgba(0,0,0,0.05); }
+        body.light-theme .hud { border-bottom: 2px solid #2b3a4a; color: #2b3a4a; }
+        body.light-theme canvas { background-color: #ffffff; }
+        body.light-theme .timer-bar-container { background: #f7f9fa; border: 2px solid #2b3a4a; }
+        body.light-theme .timer-bar { background: #2b3a4a; }
+        body.light-theme .btn-dir { background: #b0b7c0; border: 3px solid #8e96a0; color: #ffffff; box-shadow: 0 4px #9aa1a9, inset 0 2px rgba(255,255,255,0.4); }
+        body.light-theme .btn-dir:active { box-shadow: 0 1px #9aa1a9; }
+
+        /* Темная тема (Dark Mode) */
+        body.dark-theme { background-color: #1a1c1e; color: #eee; }
+        body.dark-theme h1 { color: #8bac0f; text-shadow: 0 0 5px rgba(139, 172, 15, 0.4); }
+        body.dark-theme .phone-wrapper {
+            background: #2d3033; border: 4px solid #1f2124; 
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.05), 0 10px 25px rgba(0,0,0,0.4);
+        }
+        body.dark-theme .screen { background-color: #0f141c; border: 8px solid #0d1117; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); }
+        body.dark-theme .hud { border-bottom: 2px solid #30363d; color: #8b949e; }
+        body.dark-theme canvas { background-color: #0d1117; }
+        body.dark-theme .timer-bar-container { background: #0f141c; border: 2px solid #30363d; }
+        body.dark-theme .timer-bar { background: #58a6ff; }
+        body.dark-theme .btn-dir { background: #3a3d42; border: 3px solid #282a2d; color: #eeeeee; box-shadow: 0 4px #1c1d1f, inset 0 2px rgba(255,255,255,0.05); }
+        body.dark-theme .btn-dir:active { box-shadow: 0 1px #1c1d1f; }
+
+        /* Общие стили экрана и элементов управления */
+        .screen { padding: 8px; position: relative; }
+        .hud { display: flex; justify-content: space-between; font-size: 0.65rem; padding-bottom: 8px; margin-bottom: 8px; }
+        canvas { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
+        
+        .timer-bar-container { width: 100%; height: 10px; margin-top: 5px; visibility: hidden; }
+        .timer-bar { height: 100%; width: 100%; transition: width 0.1s linear; }
 
         .name-input-overlay {
             position: absolute; top: 110px; left: 35px; right: 35px;
-            background: #0f380f; padding: 15px; border: 3px solid #9bbc0f;
+            background: #2b3a4a; padding: 15px; border: 3px solid #ffffff;
             display: none; flex-direction: column; align-items: center; gap: 12px; z-index: 10;
         }
-        .name-input-overlay label { color: #9bbc0f; font-size: 11px; text-align: center; line-height: 1.4; }
+        .name-input-overlay label { color: #ffffff; font-size: 11px; text-align: center; line-height: 1.4; }
         .name-input-overlay input {
-            background: #9bbc0f; color: #0f380f; border: none; padding: 8px;
+            background: #ffffff; color: #2b3a4a; border: none; padding: 8px;
             font-family: inherit; font-size: 14px; text-align: center; width: 100%;
             outline: none; text-transform: uppercase;
         }
         .name-input-overlay button {
-            background: #9bbc0f; color: #0f380f; border: none; padding: 8px 15px;
+            background: #ffffff; color: #2b3a4a; border: none; padding: 8px 15px;
             font-family: inherit; font-size: 10px; cursor: pointer; width: 100%;
         }
 
@@ -49,28 +85,27 @@
         .dpad-row { display: flex; justify-content: center; width: 100%; position: relative; }
         
         .btn {
-            color: #fff; font-family: inherit;
-            box-shadow: 0 4px #111, inset 0 2px rgba(255,255,255,0.2); cursor: pointer;
+            font-family: inherit; cursor: pointer;
             display: flex; align-items: center; justify-content: center; transition: all 0.05s ease;
-            text-shadow: 1px 1px 0px #000;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
         }
-        .btn:active { transform: translateY(3px); box-shadow: 0 1px #111; }
+        .btn:active { transform: translateY(3px); }
         
-        .btn-dir { 
-            width: 60px; height: 60px; margin: 3px; font-size: 1.2rem; border-radius: 12px; 
-            background: #444; border: 3px solid #222; color: #8bac0f;
-        }
+        .btn-dir { width: 60px; height: 60px; margin: 3px; font-size: 1.2rem; border-radius: 12px; }
         .btn-center { 
             width: 60px; height: 60px; margin: 3px; border-radius: 12px; font-size: 0.8rem; 
-            background: #4e8a10; border: 3px solid #2d520a; color: #fff;
+            background: #4a90e2; border: 3px solid #2d6ca8; color: #fff; box-shadow: 0 4px #224d7a, inset 0 2px rgba(255,255,255,0.3);
         }
-        .btn-side { width: 60px; height: 35px; font-size: 0.6rem; border-radius: 6px; position: absolute; top: 15px; }
+        .btn-center:active { box-shadow: 0 1px #224d7a; }
         
-        #btn-menu { left: 45px; background: #a61c1c; border: 3px solid #6e1010; }
-        #btn-back { right: 45px; background: #1e5fa8; border: 3px solid #113a6b; }
+        .btn-side { width: 60px; height: 35px; font-size: 0.6rem; border-radius: 6px; position: absolute; top: 15px; color: #fff; }
+        #btn-menu { left: 45px; background: #ff5c5c; border: 3px solid #d14141; box-shadow: 0 4px #9e2b2b; }
+        #btn-menu:active { box-shadow: 0 1px #9e2b2b; }
+        #btn-back { right: 45px; background: #7ed321; border: 3px solid #5fa315; box-shadow: 0 4px #477a10; }
+        #btn-back:active { box-shadow: 0 1px #477a10; }
     </style>
 </head>
-<body>
+<body class="light-theme">
 
     <h1>NETSNAKE 10</h1>
 
@@ -78,7 +113,7 @@
         <div class="screen">
             <div class="hud">
                 <span id="score">СЧЕТ:0</span>
-                <span id="hi-score">РЕКОРД:227 [КЛАССИКА] ОТ PLAYER</span>
+                <span id="hi-score">РЕКОРД:...</span>
             </div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             
@@ -111,7 +146,6 @@
     <script type="module">
         import { db, collection, addDoc, query, orderBy, limit, getDocs, where } from './firebase-config.js';
 
-        // Запрет дефолтных скроллов
         document.addEventListener('touchmove', (e) => { if (e.scale !== 1) e.preventDefault(); }, { passive: false });
 
         const canvas = document.getElementById("gameCanvas");
@@ -154,9 +188,9 @@
         let score = 0;
         let isGameSubmitting = false; 
         
-        let hiScore = 227;
+        let hiScore = 0;
         let playerName = localStorage.getItem("snake_player_name") || "PLAYER";
-        let bestPlayerName = "PLAYER";
+        let bestPlayerName = "---";
 
         let isPaused = true, gameOver = false, aiMode = false;
         let usedAIThisSession = false; 
@@ -164,6 +198,19 @@
         const speeds = [150, 100, 60]; 
         let soundEnabled = localStorage.getItem("snake_sound_enabled") !== "false"; 
         let currentLang = "RU";
+
+        // ЛОГИКА ТЕМЫ ИНТЕРФЕЙСА
+        let isDarkTheme = localStorage.getItem("snake_dark_theme") === "true";
+        function applyTheme() {
+            if (isDarkTheme) {
+                document.body.classList.remove("light-theme");
+                document.body.classList.add("dark-theme");
+            } else {
+                document.body.classList.remove("dark-theme");
+                document.body.classList.add("light-theme");
+            }
+        }
+        applyTheme();
 
         let currentModeIdx = 0; 
         let obstacles = [];     
@@ -175,22 +222,20 @@
 
         let currentSnakeColorIdx = parseInt(localStorage.getItem("snake_color_idx") || "0");
         const snakeColors = [
-            { nameRU: "ТЕМНЫЙ", nameEN: "DARK", hex: "#0f380f", eyeHex: "#9bbc0f" },
-            { nameRU: "ЗЕЛЕНЫЙ", nameEN: "GREEN", hex: "#38ff38", eyeHex: "#0f380f" },
+            { nameRU: "КЛАССИКА", nameEN: "CLASSIC", hex: "DYNAMIC", eyeHex: "DYNAMIC" }, 
+            { nameRU: "ЗЕЛЕНЫЙ", nameEN: "GREEN", hex: "#38ff38", eyeHex: "#111" },
             { nameRU: "СИНИЙ", nameEN: "BLUE", hex: "#0044ff", eyeHex: "#ffffff" },
             { nameRU: "РУБИН", nameEN: "RUBY", hex: "#b30000", eyeHex: "#ffffff" },
-            { nameRU: "ХАМЕЛЕОН", nameEN: "CHAMELEON", hex: "RAINBOW", eyeHex: "#ffffff" }
+            { nameRU: "ХАМЕЛЕОН", nameEN: "CHAMELEON", hex: "RAINBOW", eyeEyeHex: "#ffffff" }
         ];
         let rainbowHue = 0; 
 
         let cheatSequence = [];
         const targetCheat = ["UP", "UP", "DOWN"];
 
-        // Флаги перманентного сохранения (из localStorage)
         let isChameleonUnlocked = localStorage.getItem("snake_chameleon_unlocked") === "true";
         let isCyborgAchievementDone = localStorage.getItem("snake_cyborg_achieved") === "true";
 
-        // Задачи текущей сессии (сбрасываются каждую игру)
         let tasks = {
             score50: false, score100: false, score500: false, score1000: false,
             goldFood: false, blueFood: false, fullField: false
@@ -200,8 +245,8 @@
             RU: {
                 score: "СЧЕТ", hi: "РЕКОРД", bestBy: "ОТ", pause: "ПАУЗА", gameOver: "ФИНИШ", settings: "ОПЦИИ",
                 continue: "ИГРАТЬ", newGame: "ЗАНОВО", speed: "СКОРОСТЬ",
-                sound: "ЗВУК", lang: "ЯЗЫК", name: "ИМЯ", snakeColor: "ЗМЕЙКА", speedModes: ["ЛЕГКО", "НОРМ", "АД"],
-                toggleModes: ["ВЫКЛ", "ВКЛ"], locked: "ЗАБЛОКИР.",
+                sound: "ЗВУК", lang: "ЯЗЫК", name: "ИМЯ", snakeColor: "ЗМЕЙКА", theme: "ТЕМА", themeModes: ["СВЕТЛАЯ", "ТЕМНАЯ"],
+                speedModes: ["ЛЕГКО", "НОРМ", "АД"], toggleModes: ["ВЫКЛ", "ВКЛ"], locked: "ЗАБЛОКИР.",
                 records: "РЕКОРДЫ", loading: "ЗАГРУЗКА...", globalTop: "TOP 10", enterName: "ВВЕДИТЕ ИМЯ:",
                 empty: "ПУСТО", back: "BACK - В ГЛАВНОЕ МЕНЮ", saveBtn: "ЦЕНТР(ОК) - СОХРАНИТЬ",
                 tasksMenu: "ЗАДАНИЯ", tasksTitle: "ЗАДАНИЯ",
@@ -225,8 +270,8 @@
             EN: {
                 score: "SCORE", hi: "BEST", bestBy: "BY", pause: "PAUSE", gameOver: "GAME OVER", settings: "SETUP",
                 continue: "PLAY", newGame: "RETRY", speed: "SPEED",
-                sound: "AUDIO", lang: "LANG", name: "NAME", snakeColor: "SNAKE", speedModes: ["EASY", "NORM", "HELL"],
-                toggleModes: ["OFF", "ON"], locked: "LOCKED",
+                sound: "AUDIO", lang: "LANG", name: "NAME", snakeColor: "SNAKE", theme: "THEME", themeModes: ["LIGHT", "DARK"],
+                speedModes: ["EASY", "NORM", "HELL"], toggleModes: ["OFF", "ON"], locked: "LOCKED",
                 records: "RECORDS", loading: "LOADING...", globalTop: "TOP 10", enterName: "ENTER NAME:",
                 empty: "EMPTY", back: "BACK - TO MAIN MENU", saveBtn: "CENTER(OK) - SAVE",
                 tasksMenu: "TASKS", tasksTitle: "TASKS LIST",
@@ -243,7 +288,7 @@
                     score1000: "GRANDMASTER", score1000Desc: "REACH 1000 POINTS",
                     goldFood: "GOURMET", goldFoodDesc: "EAT A GOLDEN APPLE",
                     blueFood: "ASCETIC", blueFoodDesc: "EAT A BLUE SHRINK FOOD",
-                    cyborg: "CYBORG", cyborgDesc: "UNLOCKS CHAMELEON SKIN",
+                    cyborg: "CYBORG", cyborgDesc: "SNAKE SKIN UNLOCK",
                     fullField: "ABSOLUTE ZEN", fullFieldDesc: "FILL ALL CELLS ON THE FIELD"
                 }
             }
@@ -261,7 +306,6 @@
         let musicNode = null; 
         let globalTopTen = []; 
         let isLoadingLeaderboard = false;
-
         let externalAboutData = { RU: [], EN: [] };
 
         async function loadAboutText() {
@@ -343,7 +387,6 @@
                 }
                 return;
             }
-
             if (!tasks[id]) {
                 tasks[id] = true;
                 playSound("taskComplete");
@@ -535,10 +578,6 @@
             isLoadingLeaderboard = false;
         }
 
-        function updateButtonLabels() {
-            // Text values are hardcoded in the HTML structure to save space in JS
-        }
-
         function updateHUD() {
             const t = i18n[currentLang];
             const aiTag = aiMode ? " *AI*" : "";
@@ -549,7 +588,6 @@
             } else {
                 hiScoreElement.innerText = `${t.hi}:${hiScore} ${t.bestBy} ${bestPlayerName}`;
             }
-            // Button labels are updated via hardcoding, but could use t.menu, t.backBtn, t.ok if needed.
         }
 
         function makeAIMove() {
@@ -719,9 +757,10 @@
         }
 
         function clearCanvas() {
-            ctx.fillStyle = "#9bbc0f"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "rgba(15, 56, 15, 0.05)";
+            ctx.fillStyle = isDarkTheme ? "#0d1117" : "#ffffff"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            ctx.strokeStyle = isDarkTheme ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)";
             ctx.beginPath();
             for (let i = 0; i < tileCount; i++) {
                 ctx.moveTo(i*20,0); ctx.lineTo(i*20,400); 
@@ -734,9 +773,10 @@
             if (currentModeIdx !== 2 && currentModeIdx !== 4) return; 
             obstacles.forEach((obs, idx) => {
                 if (currentModeIdx === 4 && idx === flashingObstacleIdx && !flashToggle) return;
-                ctx.fillStyle = "#0f380f";
+                ctx.fillStyle = isDarkTheme ? "#58a6ff" : "#2b3a4a";
                 ctx.fillRect(obs.x * 20 + 2, obs.y * 20 + 2, 16, 16);
-                ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2;
+                ctx.strokeStyle = isDarkTheme ? "#0d1117" : "#ffffff"; 
+                ctx.lineWidth = 2;
                 ctx.strokeRect(obs.x * 20 + 5, obs.y * 20 + 5, 10, 10);
             });
         }
@@ -744,7 +784,9 @@
         function drawGhostTrails() {
             if (currentModeIdx !== 3) return; 
             ghostTrails.forEach(gt => {
-                ctx.fillStyle = flashToggle ? "rgba(15, 56, 15, 0.6)" : "rgba(15, 56, 15, 0.3)";
+                ctx.fillStyle = isDarkTheme 
+                    ? (flashToggle ? "rgba(88, 166, 255, 0.4)" : "rgba(88, 166, 255, 0.15)")
+                    : (flashToggle ? "rgba(43, 58, 74, 0.5)" : "rgba(43, 58, 74, 0.2)");
                 ctx.fillRect(gt.x * 20 + 4, gt.y * 20 + 4, 12, 12);
             });
         }
@@ -753,58 +795,70 @@
             const activeColor = snakeColors[currentSnakeColorIdx];
             snake.forEach((part, i) => {
                 if (activeColor.hex === "RAINBOW") {
-                    ctx.fillStyle = `hsl(${(rainbowHue + i * 15) % 360}, 100%, 30%)`;
+                    ctx.fillStyle = `hsl(${(rainbowHue + i * 15) % 360}, 90%, 45%)`;
+                } else if (activeColor.hex === "DYNAMIC") {
+                    ctx.fillStyle = isDarkTheme ? "#ecf2f8" : "#2b3a4a";
                 } else {
                     ctx.fillStyle = activeColor.hex; 
                 }
                 ctx.fillRect(part.x * 20 + 1, part.y * 20 + 1, 18, 18);
-                if (i === 0) { ctx.fillStyle = activeColor.eyeHex; ctx.fillRect(part.x * 20 + 4, part.y * 20 + 4, 4, 4); }
+                
+                if (i === 0) { 
+                    if (activeColor.eyeHex === "DYNAMIC") {
+                        ctx.fillStyle = isDarkTheme ? "#0d1117" : "#ffffff";
+                    } else {
+                        ctx.fillStyle = activeColor.eyeHex; 
+                    }
+                    ctx.fillRect(part.x * 20 + 4, part.y * 20 + 4, 4, 4); 
+                }
             });
         }
 
         function drawFood() {
             if (foodType !== "REGULAR" && !flashToggle) return; 
             const px = food.x * 20; const py = food.y * 20;
+            const darkSubColor = isDarkTheme ? "#0d1117" : "#2b3a4a";
 
             if (foodType === "REGULAR") {
-                ctx.fillStyle = "#ff0033"; ctx.fillRect(px + 5, py + 4, 10, 12); ctx.fillRect(px + 4, py + 6, 12, 8);
+                ctx.fillStyle = "#ff4d4d"; ctx.fillRect(px + 5, py + 4, 10, 12); ctx.fillRect(px + 4, py + 6, 12, 8);
                 ctx.fillRect(px + 6, py + 3, 8, 1); ctx.fillRect(px + 6, py + 16, 8, 1);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 13, 2, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 13, 2, 2);
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 6, py + 6, 2, 2); ctx.fillRect(px + 8, py + 6, 1, 1);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 1, 1, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 1, 1, 2);
                 ctx.fillStyle = "#4e8a10"; ctx.fillRect(px + 10, py + 1, 2, 1);
             } else if (foodType === "BIG") {
-                ctx.fillStyle = "#ffd700"; ctx.fillRect(px + 5, py + 4, 10, 12); ctx.fillRect(px + 4, py + 6, 12, 8);
+                ctx.fillStyle = "#ffb900"; ctx.fillRect(px + 5, py + 4, 10, 12); ctx.fillRect(px + 4, py + 6, 12, 8);
                 ctx.fillRect(px + 6, py + 3, 8, 1); ctx.fillRect(px + 6, py + 16, 8, 1);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 13, 2, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 13, 2, 2);
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 6, py + 6, 2, 2); ctx.fillRect(px + 8, py + 6, 1, 1);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 1, 1, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 1, 1, 2);
                 ctx.fillStyle = "#2d520a"; ctx.fillRect(px + 10, py + 1, 2, 1);
             } else if (foodType === "SHRINK") {
-                ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 8, py + 2, 4, 1); 
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 3, 2, 3); 
+                ctx.fillStyle = isDarkTheme ? "#1a1c1e" : "#f0f2f5"; ctx.fillRect(px + 8, py + 2, 4, 1); 
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 3, 2, 3); 
                 ctx.fillStyle = "#1e88e5"; ctx.fillRect(px + 5, py + 7, 10, 10); ctx.fillRect(px + 4, py + 9, 12, 6); ctx.fillRect(px + 6, py + 6, 8, 1);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 5, py + 8, 10, 1); ctx.fillRect(px + 11, py + 11, 2, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 5, py + 8, 10, 1); ctx.fillRect(px + 11, py + 11, 2, 2);
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 6, py + 10, 2, 3); ctx.fillRect(px + 8, py + 10, 1, 1);
             } else if (foodType === "TURBO") { 
-                ctx.fillStyle = "#e01cd0"; ctx.fillRect(px + 4, py + 4, 12, 12);
+                ctx.fillStyle = "#ba68c8"; ctx.fillRect(px + 4, py + 4, 12, 12);
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(px + 6, py + 6, 3, 3);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 2, 2, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 2, 2, 2);
             }
         }
 
         function drawGift() {
             if (!gift) return;
             const px = gift.x * 20; const py = gift.y * 20;
-            ctx.fillStyle = "#ff0033"; ctx.fillRect(px + 3, py + 7, 14, 11); ctx.fillRect(px + 2, py + 5, 16, 3);
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 5, 2, 13); ctx.fillRect(px + 3, py + 11, 14, 2);
-            ctx.fillStyle = "#ff0033";
+            const darkSubColor = isDarkTheme ? "#0d1117" : "#2b3a4a";
+            ctx.fillStyle = "#ff4d4d"; ctx.fillRect(px + 3, py + 7, 14, 11); ctx.fillRect(px + 2, py + 5, 16, 3);
+            ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 5, 2, 13); ctx.fillRect(px + 3, py + 11, 14, 2);
+            ctx.fillStyle = "#ff4d4d";
             if (flashToggle) {
                 ctx.fillRect(px + 6, py + 2, 3, 3); ctx.fillRect(px + 11, py + 2, 3, 3);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 3, 2, 2);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 3, 2, 2);
             } else {
                 ctx.fillRect(px + 5, py + 3, 3, 2); ctx.fillRect(px + 12, py + 3, 3, 2);
-                ctx.fillStyle = "#0f380f"; ctx.fillRect(px + 9, py + 4, 2, 1);
+                ctx.fillStyle = darkSubColor; ctx.fillRect(px + 9, py + 4, 2, 1);
             }
         }
 
@@ -814,7 +868,7 @@
             ctx.textAlign = "center";
             for (let i = floatingScores.length - 1; i >= 0; i--) {
                 let fs = floatingScores[i];
-                ctx.fillStyle = `rgba(15, 56, 15, ${fs.alpha})`;
+                ctx.fillStyle = isDarkTheme ? `rgba(236, 242, 248, ${fs.alpha})` : `rgba(43, 58, 74, ${fs.alpha})`;
                 ctx.fillText(fs.text, fs.x, fs.y);
                 fs.y -= 1.2; 
                 fs.life--;
@@ -826,9 +880,10 @@
 
         function drawPixelMenu(title) {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 25, 360, 350);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 31, 348, 338);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "15px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; 
+            ctx.fillRect(20, 25, 360, 350);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 31, 348, 338);
+            ctx.fillStyle = "#ffffff"; ctx.font = "15px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(title, 200, 65); ctx.fillRect(40, 85, 320, 2);
             
             ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "left"; 
@@ -846,7 +901,7 @@
 
                 options.forEach((opt, idx) => { 
                     let y = 120 + (idx * 34) - mainMenuScrollY;
-                    ctx.fillStyle = "#9bbc0f";
+                    ctx.fillStyle = "#ffffff";
                     ctx.fillText(mainMenuSelection === idx ? ">" : " ", 40, y); 
                     ctx.fillText(opt, 75, y); 
                 });
@@ -856,30 +911,43 @@
                 if (isChameleonUnlocked || currentSnakeColorIdx !== 4) {
                     labelColor = (currentLang === "RU") ? snakeColors[currentSnakeColorIdx].nameRU : snakeColors[currentSnakeColorIdx].nameEN;
                 }
-                let items = [`${t.speed}:${t.speedModes[currentSpeedMode]}`, `${t.sound}:${soundEnabled ? t.toggleModes[1] : t.toggleModes[0]}`, `${t.lang}:${currentLang}`, `${t.name}:${playerName}`, `${t.snakeColor}:${labelColor}`];
-                items.forEach((txt, i) => { let y = 120 + (i * 36); if (settingsMenuSelection === i) ctx.fillText(">", 35, y); ctx.fillText(txt, 65, y); });
+                
+                // Добавлен шестой пункт — ВЫБОР ТЕМЫ ИНТЕРФЕЙСА
+                let items = [
+                    `${t.speed}:${t.speedModes[currentSpeedMode]}`, 
+                    `${t.sound}:${soundEnabled ? t.toggleModes[1] : t.toggleModes[0]}`, 
+                    `${t.lang}:${currentLang}`, 
+                    `${t.name}:${playerName}`, 
+                    `${t.snakeColor}:${labelColor}`,
+                    `${t.theme}:${isDarkTheme ? t.themeModes[1] : t.themeModes[0]}`
+                ];
+                items.forEach((txt, i) => { 
+                    let y = 115 + (i * 34); 
+                    if (settingsMenuSelection === i) ctx.fillText(">", 35, y); 
+                    ctx.fillText(txt, 65, y); 
+                });
             }
         }
 
         function drawModesScreen() {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 25, 360, 350);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 31, 348, 338);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; ctx.fillRect(20, 25, 360, 350);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 31, 348, 338);
+            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(t.modesTitle, 200, 65); ctx.fillRect(40, 85, 320, 2);
             ctx.font = "10px 'Press Start 2P'"; ctx.textAlign = "left"; 
             t.gameModes.forEach((modeName, idx) => {
                 let y = 115 + (idx * 33);
                 ctx.fillText(`${(modesMenuSelection === idx) ? ">" : " "} ${currentModeIdx === idx ? "[X]" : "[ ]"} ${modeName}`, 42, y);
             });
-            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 345);
+            ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 345);
         }
 
         function drawLeaderboardScreen() {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "12px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; ctx.fillRect(20, 15, 360, 370);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
+            ctx.fillStyle = "#ffffff"; ctx.font = "12px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(`${t.globalTop} [${t.gameModes[currentModeIdx] || "GAME"}]`, 200, 48); ctx.fillRect(40, 58, 320, 2);
             ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "left"; 
             if (isLoadingLeaderboard) { ctx.textAlign = "center"; ctx.fillText(t.loading, 200, 200); }
@@ -893,67 +961,71 @@
                     ctx.fillText(`:${entry.score}`, 275, y);
                 });
             }
-            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 360);
+            ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 360);
         }
 
         function drawTasksScreen() {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; ctx.fillRect(20, 15, 360, 370);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
+            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(t.tasksTitle, 200, 45); ctx.fillRect(40, 54, 320, 2);
             ctx.save(); ctx.beginPath(); ctx.rect(30, 60, 340, 265); ctx.clip();
             ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "left"; 
             const taskKeys = ["score50", "score100", "score500", "score1000", "goldFood", "blueFood", "fullField"];
             taskKeys.forEach((key, idx) => {
                 let y = 85 + (idx * 52) - tasksScrollY; let isDone = tasks[key];
-                ctx.fillStyle = isDone ? "#9bbc0f" : "#445808";
+                ctx.fillStyle = isDone ? "#ffffff" : (isDarkTheme ? "#484f58" : "#6c7d93");
                 ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${key === "fullField" && !isDone ? t.unknownTask : t.taskList[key]}`, 42, y);
-                ctx.font = "7.5px 'Press Start 2P'"; ctx.fillStyle = isDone ? "#9bbc0f" : "#8bac0f"; 
+                ctx.font = "7.5px 'Press Start 2P'"; ctx.fillStyle = isDone ? "#ffffff" : (isDarkTheme ? "#8b949e" : "#a2b0c3"); 
                 ctx.fillText(key === "fullField" && !isDone ? t.secretTaskDesc : t.taskList[key + "Desc"], 42, y + 15);
                 ctx.font = "11px 'Press Start 2P'";
             });
             ctx.restore();
-            ctx.fillStyle = "#223d0a"; ctx.fillRect(355, 65, 4, 255); 
-            ctx.fillStyle = "#9bbc0f"; ctx.fillRect(355, 65 + (tasksScrollY / maxTasksScrollY) * 165, 4, 90); 
-            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
+            ctx.fillStyle = isDarkTheme ? "#21262d" : "#1b2530"; ctx.fillRect(355, 65, 4, 255); 
+            ctx.fillStyle = "#ffffff"; ctx.fillRect(355, 65 + (tasksScrollY / maxTasksScrollY) * 165, 4, 90); 
+            ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
         }
 
         function drawAchievementsScreen() {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; ctx.fillRect(20, 15, 360, 370);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
+            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(t.achievementsTitle, 200, 45); ctx.fillRect(40, 54, 320, 2);
             
             ctx.font = "11px 'Press Start 2P'"; ctx.textAlign = "left"; 
             let isDone = isCyborgAchievementDone;
-            ctx.fillStyle = isDone ? "#9bbc0f" : "#445808";
+            ctx.fillStyle = isDone ? "#ffffff" : (isDarkTheme ? "#484f58" : "#6c7d93");
             ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.taskList["cyborg"]}`, 42, 95);
-            ctx.font = "7.5px 'Press Start 2P'"; ctx.fillStyle = isDone ? "#9bbc0f" : "#8bac0f"; 
+            ctx.font = "7.5px 'Press Start 2P'"; ctx.fillStyle = isDone ? "#ffffff" : (isDarkTheme ? "#8b949e" : "#a2b0c3"); 
             ctx.fillText(t.taskList["cyborgDesc"], 42, 110);
             
-            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
+            ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
         }
 
         function drawAboutScreen() {
             const t = i18n[currentLang];
-            ctx.fillStyle = "#0f380f"; ctx.fillRect(20, 15, 360, 370);
-            ctx.strokeStyle = "#9bbc0f"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
-            ctx.fillStyle = "#9bbc0f"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
+            ctx.fillStyle = isDarkTheme ? "#161b22" : "#2b3a4a"; ctx.fillRect(20, 15, 360, 370);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(26, 21, 348, 358);
+            ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Press Start 2P'"; ctx.textAlign = "center"; 
             ctx.fillText(t.aboutTitle, 200, 45); ctx.fillRect(40, 54, 320, 2);
             ctx.save(); ctx.beginPath(); ctx.rect(30, 60, 340, 265); ctx.clip();
             ctx.textAlign = "left";
-            (externalAboutData[currentLang] || []).forEach((line, idx) => {
+            
+            const textLines = externalAboutData[currentLang] || [];
+            textLines.forEach((line, idx) => {
                 let y = 85 + (idx * 18) - aboutScrollY;
                 ctx.font = (idx === 0) ? "10px 'Press Start 2P'" : "7.5px 'Press Start 2P'";
-                ctx.fillStyle = (idx === 0 || line.startsWith("УПРАВЛЕНИЕ:") || line.startsWith("CONTROLS:") || line.startsWith("ОСОБЕННОСТИ:") || line.startsWith("FEATURES:")) ? "#9bbc0f" : "#8bac0f";
+                
+                let isHeader = idx === 0 || line.startsWith("УПРАВЛЕНИЕ:") || line.startsWith("CONTROLS:") || line.startsWith("ОСОБЕННОСТИ:") || line.startsWith("FEATURES:");
+                ctx.fillStyle = isHeader ? "#ffffff" : (isDarkTheme ? "#8b949e" : "#a2b0c3");
                 ctx.fillText(line, 40, y);
             });
             ctx.restore();
-            ctx.fillStyle = "#223d0a"; ctx.fillRect(355, 65, 4, 255); 
-            ctx.fillStyle = "#9bbc0f"; ctx.fillRect(355, 65 + (aboutScrollY / maxAboutScrollY) * 135, 4, 120); 
-            ctx.fillStyle = "#9bbc0f"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
+            ctx.fillStyle = isDarkTheme ? "#21262d" : "#1b2530"; ctx.fillRect(355, 65, 4, 255); 
+            ctx.fillStyle = "#ffffff"; ctx.fillRect(355, 65 + (aboutScrollY / maxAboutScrollY) * 135, 4, 120); 
+            ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.font = "10px 'Press Start 2P'"; ctx.fillText(t.back, 200, 365);
         }
 
         function openNameInput() {
@@ -1113,7 +1185,6 @@
             }
             cheatSequence = []; 
             if (currentScreen === "MAIN") {
-                let maxOpt = gameOver ? 6 : 7;
                 if (gameOver) {
                     if (mainMenuSelection === 0) reset();
                     else if (mainMenuSelection === 1) { currentScreen = "MODES"; modesMenuSelection = currentModeIdx; }
@@ -1150,12 +1221,15 @@
                 else if (s === 3) openNameInput();
                 else if (s === 4) { 
                     let nextColorIdx = (currentSnakeColorIdx + 1) % snakeColors.length;
-                    // Если следующий индекс ведет на ХАМЕЛЕОН (индекс 4), проверяем, разблокирован ли он
-                    if (nextColorIdx === 4 && !isChameleonUnlocked) {
-                        nextColorIdx = 0; // Если закрыт, переключаемся сразу на начало списка (ТЕМНЫЙ)
-                    }
+                    if (nextColorIdx === 4 && !isChameleonUnlocked) nextColorIdx = 0; 
                     currentSnakeColorIdx = nextColorIdx;
                     localStorage.setItem("snake_color_idx", currentSnakeColorIdx); 
+                }
+                else if (s === 5) {
+                    // Обработка клика на пункт ТЕМА
+                    isDarkTheme = !isDarkTheme;
+                    localStorage.setItem("snake_dark_theme", isDarkTheme);
+                    applyTheme();
                 }
             } else if (!isPaused) {
                 isPaused = true;
@@ -1191,7 +1265,7 @@
             } else {
                 if (currentScreen === "MAIN") { let max = gameOver ? 6 : 7; if (act === "UP") mainMenuSelection = (mainMenuSelection <= 0) ? max : mainMenuSelection - 1; if (act === "DOWN") mainMenuSelection = (mainMenuSelection >= max) ? 0 : mainMenuSelection + 1; }
                 else if (currentScreen === "MODES") { if (act === "UP") modesMenuSelection = (modesMenuSelection <= 0) ? 4 : modesMenuSelection - 1; if (act === "DOWN") modesMenuSelection = (modesMenuSelection >= 4) ? 0 : modesMenuSelection + 1; }
-                else if (currentScreen === "SETTINGS") { if (act === "UP") settingsMenuSelection = (settingsMenuSelection <= 0) ? 4 : settingsMenuSelection - 1; if (act === "DOWN") settingsMenuSelection = (settingsMenuSelection >= 4) ? 0 : settingsMenuSelection + 1; }
+                else if (currentScreen === "SETTINGS") { let max = 5; if (act === "UP") settingsMenuSelection = (settingsMenuSelection <= 0) ? max : settingsMenuSelection - 1; if (act === "DOWN") settingsMenuSelection = (settingsMenuSelection >= max) ? 0 : settingsMenuSelection + 1; }
                 else if (currentScreen === "TASKS") { if (act === "UP") tasksScrollY = Math.max(0, tasksScrollY - 20); if (act === "DOWN") tasksScrollY = Math.min(maxTasksScrollY, tasksScrollY + 20); }
                 else if (currentScreen === "ABOUT") { if (act === "UP") aboutScrollY = Math.max(0, aboutScrollY - 15); if (act === "DOWN") aboutScrollY = Math.min(maxAboutScrollY, aboutScrollY + 15); }
             }
