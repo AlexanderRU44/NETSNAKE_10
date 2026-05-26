@@ -280,8 +280,11 @@
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                startBackgroundMusic();
             }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            startBackgroundMusic();
         }
 
         function startBackgroundMusic() {
@@ -305,7 +308,7 @@
             musicNode.loop = true;
             
             const musicGain = audioCtx.createGain();
-            musicGain.gain.setValueAtTime(isPaused ? 0 : 0.6, audioCtx.currentTime); 
+            musicGain.gain.setValueAtTime((isPaused || !soundEnabled) ? 0 : 0.6, audioCtx.currentTime); 
 
             musicNode.connect(musicGain);
             musicGain.connect(audioCtx.destination);
@@ -1116,7 +1119,6 @@
             }
             cheatSequence = []; 
             if (currentScreen === "MAIN") {
-                let maxOpt = gameOver ? 6 : 7;
                 if (gameOver) {
                     if (mainMenuSelection === 0) reset();
                     else if (mainMenuSelection === 1) { currentScreen = "MODES"; modesMenuSelection = currentModeIdx; }
@@ -1153,9 +1155,8 @@
                 else if (s === 3) openNameInput();
                 else if (s === 4) { 
                     let nextColorIdx = (currentSnakeColorIdx + 1) % snakeColors.length;
-                    // Если следующий индекс ведет на ХАМЕЛЕОН (индекс 4), проверяем, разблокирован ли он
                     if (nextColorIdx === 4 && !isChameleonUnlocked) {
-                        nextColorIdx = 0; // Если закрыт, переключаемся сразу на начало списка (ТЕМНЫЙ)
+                        nextColorIdx = 0; 
                     }
                     currentSnakeColorIdx = nextColorIdx;
                     localStorage.setItem("snake_color_idx", currentSnakeColorIdx); 
