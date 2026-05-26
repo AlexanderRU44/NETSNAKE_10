@@ -1,0 +1,26 @@
+{
+  "RU": [
+    "NETSNAKE 10 V1.0",
+    "КЛАССИЧЕСКАЯ ЗМЕЙКА",
+    "В НОВОМ ФОРМАТЕ.",
+    "",
+    "УПРАВЛЕНИЕ:",
+    "СТРЕЛКИ / WASD - ДВИЖЕНИЕ",
+    "ENTER / SPACE - ОК",
+    "ESC / BACKSPACE - НАЗАД",
+    "M - ГЛАВНОЕ МЕНЮ",
+    ""
+  ],
+  "EN": [
+    "NETSNAKE 10 V1.0",
+    "CLASSIC SNEK GAME",
+    "REIMAGINED.",
+    "",
+    "CONTROLS:",
+    "ARROWS / WASD - MOVE",
+    "ENTER / SPACE - OK",
+    "ESC / BACKSPACE - BACK",
+    "M - MAIN MENU",
+    ""
+  ]
+}
