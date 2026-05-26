@@ -81,28 +81,58 @@
             font-family: inherit; font-size: 10px; cursor: pointer; width: 100%;
         }
 
-        .dpad-container { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 5px; }
-        .dpad-row { display: flex; justify-content: center; width: 100%; position: relative; }
+        /* Обновленная и стабильная сетка D-Pad панели на CSS Grid */
+        .dpad-container { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, auto);
+            gap: 6px; 
+            width: 100%; 
+            max-width: 320px; 
+            margin: 10px auto 0 auto; 
+        }
         
         .btn {
             font-family: inherit; cursor: pointer;
             display: flex; align-items: center; justify-content: center; transition: all 0.05s ease;
             text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+            touch-action: manipulation; /* Убирает мобильные задержки ввода */
+            width: 100%;
         }
         .btn:active { transform: translateY(3px); }
         
-        .btn-dir { width: 60px; height: 60px; margin: 3px; font-size: 1.2rem; border-radius: 12px; }
+        /* Базовая высота и скругления игровых стрелок */
+        .btn-dir { height: 60px; font-size: 1.2rem; border-radius: 12px; }
+        
+        /* Центральная кнопка OK */
         .btn-center { 
-            width: 60px; height: 60px; margin: 3px; border-radius: 12px; font-size: 0.8rem; 
+            height: 60px; border-radius: 12px; font-size: 0.8rem; 
             background: #4a90e2; border: 3px solid #2d6ca8; color: #fff; box-shadow: 0 4px #224d7a, inset 0 2px rgba(255,255,255,0.3);
         }
         .btn-center:active { box-shadow: 0 1px #224d7a; }
         
-        .btn-side { width: 60px; height: 35px; font-size: 0.6rem; border-radius: 6px; position: absolute; top: 15px; color: #fff; }
-        #btn-menu { left: 45px; background: #ff5c5c; border: 3px solid #d14141; box-shadow: 0 4px #9e2b2b; }
+        /* Боковые системные кнопки (MENU / BACK) */
+        .btn-side { 
+            height: 45px; 
+            font-size: 0.6rem; 
+            border-radius: 8px; 
+            color: #fff; 
+            align-self: end; /* Смещаем их немного ниже к горизонтальной оси, чтобы не слипались */
+            margin-bottom: 5px;
+        }
+        
+        #btn-menu { background: #ff5c5c; border: 3px solid #d14141; box-shadow: 0 4px #9e2b2b; grid-column: 1; grid-row: 1; }
         #btn-menu:active { box-shadow: 0 1px #9e2b2b; }
-        #btn-back { right: 45px; background: #7ed321; border: 3px solid #5fa315; box-shadow: 0 4px #477a10; }
+        
+        #btn-back { background: #7ed321; border: 3px solid #5fa315; box-shadow: 0 4px #477a10; grid-column: 3; grid-row: 1; }
         #btn-back:active { box-shadow: 0 1px #477a10; }
+
+        /* Позиционирование стрелок в сетке */
+        #btn-up    { grid-column: 2; grid-row: 1; }
+        #btn-left  { grid-column: 1; grid-row: 2; }
+        #btn-space { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        #btn-down  { grid-column: 2; grid-row: 3; }
     </style>
 </head>
 <body class="light-theme">
@@ -129,17 +159,15 @@
         </div>
 
         <div class="dpad-container">
-            <div class="dpad-row">
-                <button class="btn btn-side" id="btn-menu">MENU</button>
-                <button class="btn btn-dir" id="btn-up">▲</button>
-                <button class="btn btn-side" id="btn-back">BACK</button>
-            </div>
-            <div class="dpad-row">
-                <button class="btn btn-dir" id="btn-left">◀</button>
-                <button class="btn btn-center" id="btn-space">OK</button>
-                <button class="btn btn-dir" id="btn-right">▶</button>
-            </div>
-            <div class="dpad-row"><button class="btn btn-dir" id="btn-down">▼</button></div>
+            <button class="btn btn-side" id="btn-menu">MENU</button>
+            <button class="btn btn-dir" id="btn-up">▲</button>
+            <button class="btn btn-side" id="btn-back">BACK</button>
+            
+            <button class="btn btn-dir" id="btn-left">◀</button>
+            <button class="btn btn-center" id="btn-space">OK</button>
+            <button class="btn btn-dir" id="btn-right">▶</button>
+            
+            <button class="btn btn-dir" id="btn-down">▼</button>
         </div>
     </div>
 
@@ -199,7 +227,6 @@
         let soundEnabled = localStorage.getItem("snake_sound_enabled") !== "false"; 
         let currentLang = "RU";
 
-        // ЛОГИКА ТЕМЫ ИНТЕРФЕЙСА
         let isDarkTheme = localStorage.getItem("snake_dark_theme") === "true";
         function applyTheme() {
             if (isDarkTheme) {
@@ -912,7 +939,6 @@
                     labelColor = (currentLang === "RU") ? snakeColors[currentSnakeColorIdx].nameRU : snakeColors[currentSnakeColorIdx].nameEN;
                 }
                 
-                // Добавлен шестой пункт — ВЫБОР ТЕМЫ ИНТЕРФЕЙСА
                 let items = [
                     `${t.speed}:${t.speedModes[currentSpeedMode]}`, 
                     `${t.sound}:${soundEnabled ? t.toggleModes[1] : t.toggleModes[0]}`, 
@@ -1226,7 +1252,6 @@
                     localStorage.setItem("snake_color_idx", currentSnakeColorIdx); 
                 }
                 else if (s === 5) {
-                    // Обработка клика на пункт ТЕМА
                     isDarkTheme = !isDarkTheme;
                     localStorage.setItem("snake_dark_theme", isDarkTheme);
                     applyTheme();
