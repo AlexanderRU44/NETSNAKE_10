@@ -178,8 +178,8 @@ export class Game {
         if (absX > absY) {
             direction = deltaX > 0 ? "RIGHT" : "LEFT";
         } else {
-            // Инвертируем направление для вертикальных свайпов: свайп вниз -> UP, вверх -> DOWN
-            direction = deltaY > 0 ? "UP" : "DOWN";
+            // Исправлено: свайп вниз -> DOWN, свайп вверх -> UP
+            direction = deltaY > 0 ? "DOWN" : "UP";
         }
 
         if (!this.isPaused && !this.gameOver && this.currentScreen !== "INTRO" && this.currentScreen !== "EDIT_NAME") {
