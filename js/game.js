@@ -147,7 +147,6 @@ export class Game {
         this.animationController = new AnimationController(this);
         this.gameMechanics = new GameMechanics(this);
 
-        // Загружаем about текст ПОСЛЕ установки currentLang
         this.aboutLogic.loadAboutText();
 
         this.loadBestSingleScore = () => this.leaderboard.loadBestSingleScore();
@@ -210,7 +209,6 @@ export class Game {
         let modeTag = "";
 
         if (this.isMultiplayerMode) {
-            // В мультиплеере HUD обновляется отдельно
             return;
         } else if (this.currentModeIdx === 5) {
             modeTag = ` [${t.gameModes[5]}] ${this.score}:${this.aiOpponentScore}`;
@@ -317,20 +315,17 @@ export class Game {
         this.goldDistanceBeforeDeath = null;
         this.shieldActive = false;
         
-        // Очистка таймаута щита
         if (this.foodLogic && this.foodLogic.shieldTimeout) {
             clearTimeout(this.foodLogic.shieldTimeout);
             this.foodLogic.shieldTimeout = null;
         }
         
-        // Сброс аккумуляторов в GameMechanics
         if (this.gameMechanics) {
             this.gameMechanics.timeAccumulator = 0;
         }
 
         this.specialModes.reset();
 
-        // Очищаем еду для режима сбора монет
         if (this.currentModeIdx === 8) {
             this.food = null;
             this.foodType = "REGULAR";
@@ -347,7 +342,6 @@ export class Game {
             this.aiOpponentScore = 0;
         }
         
-        // Обновляем музыку при сбросе игры
         if (this.soundEnabled) {
             startBackgroundMusic();
         } else {
@@ -362,7 +356,6 @@ export class Game {
     // ========== МУЛЬТИПЛЕЕРНЫЕ МЕТОДЫ ==========
 
     async openMultiplayerMenu() {
-        // Динамический импорт модулей мультиплеера
         try {
             const { PeerManager } = await import('./multiplayer/peerManager.js');
             const { MultiplayerGame } = await import('./multiplayer/multiplayerGame.js');
@@ -380,19 +373,21 @@ export class Game {
     }
 
     startMultiplayerMode(multiplayerGame) {
+        console.log("startMultiplayerMode called");
         this.isMultiplayerMode = true;
         this.multiplayerGame = multiplayerGame;
         this.isPaused = false;
         this.gameOver = false;
         this.score = 0;
         this.updateHUD();
+        console.log("Multiplayer mode activated, isPaused:", this.isPaused);
     }
 
     showMultiplayerMessage(message) {
         this.isPaused = true;
         this.gameOver = true;
+        this.isMultiplayerMode = false;
         
-        // Сохраняем контекст для отрисовки сообщения
         setTimeout(() => {
             if (this.ctx) {
                 this.ctx.fillStyle = "rgba(0,0,0,0.85)";
@@ -400,8 +395,6 @@ export class Game {
                 this.ctx.fillStyle = "#ffffff";
                 this.ctx.font = "10px 'Press Start 2P'";
                 this.ctx.textAlign = "center";
-                
-                // Разбиваем длинное сообщение на строки
                 const lines = this.wrapText(message, 35);
                 const startY = this.canvas.height / 2 - (lines.length * 10);
                 lines.forEach((line, idx) => {
@@ -416,7 +409,6 @@ export class Game {
         const words = text.split(' ');
         const lines = [];
         let currentLine = '';
-        
         for (let word of words) {
             if ((currentLine + ' ' + word).length > maxLength) {
                 lines.push(currentLine);
@@ -479,13 +471,16 @@ export class Game {
     }
 
     handleInput(act) {
+        console.log("handleInput:", act, "isMultiplayerMode:", this.isMultiplayerMode);
+        
         if (this.currentScreen === "EDIT_NAME" || this.currentScreen === "INTRO") return;
         if (this.currentScreen === "MULTIPLAYER") return;
         
         initAudio();
         
-        // Мультиплеерный ввод
-        if (this.isMultiplayerMode && !this.isPaused && this.multiplayerGame && this.multiplayerGame.gameActive) {
+        // МУЛЬТИПЛЕЕРНЫЙ ВВОД
+        if (this.isMultiplayerMode && this.multiplayerGame && this.multiplayerGame.gameActive) {
+            console.log("Multiplayer input processing:", act);
             if (act === "UP" && this.multiplayerGame.myDirection.dy === 0) {
                 this.multiplayerGame.sendDirection(0, -1);
             } else if (act === "DOWN" && this.multiplayerGame.myDirection.dy === 0) {
@@ -580,29 +575,36 @@ export class Game {
             return;
         }
 
-        // Отрисовка мультиплеерного UI
-        if (this.currentScreen === "MULTIPLAYER" && this.multiplayerUI && this.multiplayerUI.isActive) {
-            this.renderer.clearCanvas();
-            this.multiplayerUI.draw(this.ctx, this.canvas.width, this.canvas.height);
-            return;
-        }
-
         this.renderer.clearCanvas();
-        const t = this.i18n[this.currentLang];
-        this.flashCounter++;
-        if (this.flashCounter % 3 === 0) this.flashToggle = !this.flashToggle;
-        this.rainbowHue = (this.rainbowHue + 5) % 360;
-
-        // Мультиплеерный режим игры
-        if (this.isMultiplayerMode && this.multiplayerGame && this.multiplayerGame.gameActive) {
-            this.multiplayerGame.draw(this.ctx, this.gridSize);
-            
-            // Рисуем floating scores если есть
-            this.renderer.drawFloatingScores(this.floatingScores);
+        
+        // МУЛЬТИПЛЕЕР - ПЕРВЫМ!
+        if (this.isMultiplayerMode && this.multiplayerGame) {
+            if (this.multiplayerGame.gameActive) {
+                this.multiplayerGame.draw(this.ctx, this.gridSize);
+            } else {
+                // Если игра не активна, показываем сообщение
+                this.ctx.fillStyle = "rgba(0,0,0,0.8)";
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = "#ffffff";
+                this.ctx.font = "10px 'Press Start 2P'";
+                this.ctx.textAlign = "center";
+                this.ctx.fillText("Waiting for opponent...", this.canvas.width / 2, this.canvas.height / 2);
+            }
             this.particleSystem.update();
             this.particleSystem.draw(this.ctx);
             return;
         }
+        
+        // Отрисовка мультиплеерного UI
+        if (this.currentScreen === "MULTIPLAYER" && this.multiplayerUI && this.multiplayerUI.isActive) {
+            this.multiplayerUI.draw(this.ctx, this.canvas.width, this.canvas.height);
+            return;
+        }
+
+        const t = this.i18n[this.currentLang];
+        this.flashCounter++;
+        if (this.flashCounter % 3 === 0) this.flashToggle = !this.flashToggle;
+        this.rainbowHue = (this.rainbowHue + 5) % 360;
 
         if (this.isTurboActive) {
             let delta = this.speeds[this.currentSpeedMode];
