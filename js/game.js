@@ -379,8 +379,9 @@ export class Game {
         this.isPaused = false;
         this.gameOver = false;
         this.score = 0;
+        this.currentScreen = "GAME";
         this.updateHUD();
-        console.log("Multiplayer mode activated, isPaused:", this.isPaused);
+        console.log("Multiplayer mode activated, isPaused:", this.isPaused, "currentScreen:", this.currentScreen);
     }
 
     showMultiplayerMessage(message) {
@@ -477,16 +478,17 @@ export class Game {
         
         initAudio();
         
-        // ========== МУЛЬТИПЛЕЕРНЫЙ ВВОД - ПЕРВЫМ ДЕЛОМ! ==========
-        if (this.isMultiplayerMode && this.multiplayerGame && this.multiplayerGame.gameActive) {
-            console.log("Multiplayer input processing:", act);
-            if (act === "UP" && this.multiplayerGame.myDirection.dy === 0) {
+        // ========== МУЛЬТИПЛЕЕРНЫЙ ВВОД ==========
+        if (this.isMultiplayerMode && this.multiplayerGame) {
+            console.log("Multiplayer input processing:", act, "gameActive:", this.multiplayerGame.gameActive);
+            
+            if (act === "UP") {
                 this.multiplayerGame.sendDirection(0, -1);
-            } else if (act === "DOWN" && this.multiplayerGame.myDirection.dy === 0) {
+            } else if (act === "DOWN") {
                 this.multiplayerGame.sendDirection(0, 1);
-            } else if (act === "LEFT" && this.multiplayerGame.myDirection.dx === 0) {
+            } else if (act === "LEFT") {
                 this.multiplayerGame.sendDirection(-1, 0);
-            } else if (act === "RIGHT" && this.multiplayerGame.myDirection.dx === 0) {
+            } else if (act === "RIGHT") {
                 this.multiplayerGame.sendDirection(1, 0);
             }
             return;
