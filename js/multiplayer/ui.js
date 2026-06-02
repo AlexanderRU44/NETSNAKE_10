@@ -157,7 +157,9 @@ export class MultiplayerUI {
         this.close(false);
         this.game.startMultiplayerMode(this.multiplayerGame);
         this.multiplayerGame.init(this.isHost);
-        console.log("Game should be running now");
+        // Принудительно меняем экран на GAME
+        this.game.currentScreen = "GAME";
+        console.log("Game should be running now, currentScreen:", this.game.currentScreen);
     }
 
     close(disconnect = false) {
