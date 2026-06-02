@@ -1,0 +1,422 @@
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent; 
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    font-family: 'Press Start 2P', monospace;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    min-height: 100vh; 
+    min-height: -webkit-fill-available;
+    margin: 0; 
+    padding: 10px; 
+    overflow: hidden;
+    touch-action: none; 
+    overscroll-behavior: none;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* КОРПУС */
+.phone-wrapper {
+    padding: 15px; 
+    border-radius: 20px; 
+    width: 100%; 
+    max-width: 410px; 
+    max-height: 96vh;
+    overflow-y: auto;
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    position: relative;
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* ВЕРХНЯЯ ПАНЕЛЬ КОРПУСА */
+.top-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 12px;
+}
+
+.top-panel h1 {
+    margin: 0;
+    font-size: 0.85rem;
+    text-align: left;
+    white-space: nowrap;   /* запрет переноса строки */
+}
+
+/* ПАНЕЛЬ СЛЕДУЮЩАЯ ЕДА С РЯБЬЮ (уменьшена) */
+.next-food-panel {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;              /* было 8px */
+    border-radius: 12px;
+    padding: 4px 8px;      /* было 5px 12px */
+    overflow: hidden;
+}
+
+.next-food-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.08) 0px,
+        rgba(0, 0, 0, 0.08) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+    pointer-events: none;
+    z-index: 5;
+    animation: panelScanlines 0.15s linear infinite;
+}
+
+.next-food-panel::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.02);
+    pointer-events: none;
+    z-index: 4;
+    animation: panelFlicker 0.2s steps(2) infinite;
+}
+
+.next-food-label {
+    position: relative;
+    z-index: 6;
+    font-size: 0.45rem;    /* было 0.5rem */
+    letter-spacing: 1px;
+    animation: textGlitch 0.3s infinite alternate;
+}
+
+#miniCanvas {
+    display: block;
+    width: 28px;            /* было 36px */
+    height: 28px;           /* было 36px */
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+/* БОЛЬШОЙ ЭКРАН С ИГРОЙ */
+.screen {
+    padding: 8px;
+    position: relative;
+    border-radius: 16px;
+}
+
+.hud {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    visibility: hidden;
+}
+
+canvas { 
+    display: block; 
+    width: 100%; 
+    height: auto; 
+    aspect-ratio: 1 / 1; 
+}
+
+.timer-bar-container { 
+    width: 100%; 
+    height: 10px; 
+    margin-top: 5px; 
+    visibility: hidden; 
+}
+.timer-bar { 
+    height: 100%; 
+    width: 100%; 
+    transition: width 0.1s linear; 
+}
+
+/* КНОПКИ */
+.dpad-container { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    grid-template-rows: repeat(3, auto);
+    gap: 8px; 
+    width: 100%; 
+    max-width: 340px; 
+    margin: 5px auto 10px auto;
+}
+
+.btn {
+    font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.05s ease;
+    text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+    touch-action: manipulation;
+    width: 100%;
+}
+.btn:active { transform: translateY(2px); }
+
+.btn-dir { height: 55px; font-size: 1.2rem; border-radius: 12px; }
+.btn-center { 
+    height: 55px; border-radius: 12px; font-size: 0.8rem; 
+    background: #4a90e2; border: 3px solid #2d6ca8; color: #fff; 
+    box-shadow: 0 4px #224d7a, inset 0 2px rgba(255,255,255,0.3);
+}
+.btn-center:active { box-shadow: 0 1px #224d7a; }
+.btn-side { 
+    height: 42px; font-size: 0.6rem; border-radius: 8px; color: #fff; 
+    align-self: end; margin-bottom: 2px;
+}
+
+#btn-menu { background: #ff5c5c; border: 3px solid #d14141; box-shadow: 0 4px #9e2b2b; grid-column: 1; grid-row: 1; }
+#btn-menu:active { box-shadow: 0 1px #9e2b2b; }
+#btn-back { background: #7ed321; border: 3px solid #5fa315; box-shadow: 0 4px #477a10; grid-column: 3; grid-row: 1; }
+#btn-back:active { box-shadow: 0 1px #477a10; }
+#btn-up    { grid-column: 2; grid-row: 1; }
+#btn-left  { grid-column: 1; grid-row: 2; }
+#btn-space { grid-column: 2; grid-row: 2; }
+#btn-right { grid-column: 3; grid-row: 2; }
+#btn-down  { grid-column: 2; grid-row: 3; }
+
+/* ОВЕРЛЕЙ */
+.name-input-overlay {
+    position: absolute; top: 25%; left: 20px; right: 20px;
+    background: #2b3a4a; padding: 15px; border: 3px solid #ffffff;
+    display: none; flex-direction: column; align-items: center; gap: 12px; z-index: 10;
+}
+.name-input-overlay label { color: #ffffff; font-size: 11px; text-align: center; line-height: 1.4; }
+.name-input-overlay input {
+    background: #ffffff; color: #2b3a4a; border: none; padding: 8px;
+    font-family: inherit; font-size: 14px; text-align: center; width: 100%;
+    outline: none; text-transform: uppercase;
+    -webkit-user-select: text; user-select: text; 
+}
+.name-input-overlay button {
+    background: #ffffff; color: #2b3a4a; border: none; padding: 8px 15px;
+    font-family: inherit; font-size: 10px; cursor: pointer; width: 100%;
+}
+
+/* ===== LIGHT THEME ===== */
+body.light-theme { background-color: #f0f2f5; color: #333; }
+body.light-theme .phone-wrapper {
+    background: #e1e4e9; border: 4px solid #ccd1d9; 
+    box-shadow: inset 0 0 10px #fff, 0 10px 25px rgba(0,0,0,0.1);
+}
+body.light-theme .top-panel h1 { color: #222; text-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
+body.light-theme .next-food-panel {
+    background-color: #f7f9fa;
+    border: 4px solid #2b3a4a;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+}
+body.light-theme .next-food-label {
+    color: #2b3a4a;
+    text-shadow: none;
+}
+body.light-theme .screen { background-color: #f7f9fa; border: 8px solid #2b3a4a; box-shadow: inset 0 0 15px rgba(0,0,0,0.05); }
+body.light-theme .hud { border-bottom: 2px solid #2b3a4a; color: #2b3a4a; }
+body.light-theme canvas { background-color: #ffffff; }
+body.light-theme .timer-bar-container { background: #f7f9fa; border: 2px solid #2b3a4a; }
+body.light-theme .timer-bar { background: #2b3a4a; }
+body.light-theme .btn-dir { background: #b0b7c0; border: 3px solid #8e96a0; color: #ffffff; box-shadow: 0 4px #9aa1a9, inset 0 2px rgba(255,255,255,0.4); }
+body.light-theme .btn-dir:active { box-shadow: 0 1px #9aa1a9; }
+
+/* ===== DARK THEME ===== */
+body.dark-theme { background-color: #1a1c1e; color: #eee; }
+body.dark-theme .phone-wrapper {
+    background: #2d3033; border: 4px solid #1f2124; 
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.05), 0 10px 25px rgba(0,0,0,0.4);
+}
+body.dark-theme .top-panel h1 { color: #8bac0f; text-shadow: 0 0 5px rgba(139, 172, 15, 0.4); }
+body.dark-theme .next-food-panel {
+    background-color: #0d1117;
+    border: 4px solid #2b3a4a;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+}
+body.dark-theme .next-food-label {
+    color: #8bac0f;
+    text-shadow: 1px 1px 0 #000;
+}
+body.dark-theme .screen { background-color: #0f141c; border: 8px solid #0d1117; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); }
+body.dark-theme .hud { border-bottom: 2px solid #30363d; color: #8b949e; }
+body.dark-theme canvas { background-color: #0d1117; }
+body.dark-theme .timer-bar-container { background: #0f141c; border: 2px solid #30363d; }
+body.dark-theme .timer-bar { background: #58a6ff; }
+body.dark-theme .btn-dir { background: #3a3d42; border: 3px solid #282a2d; color: #eeeeee; box-shadow: 0 4px #1c1d1f, inset 0 2px rgba(255,255,255,0.05); }
+body.dark-theme .btn-dir:active { box-shadow: 0 1px #1c1d1f; }
+
+/* УСИЛЕНИЕ РЯБИ ДЛЯ ТЁМНОЙ ТЕМЫ */
+body.dark-theme .next-food-panel::before {
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.25) 0px,
+        rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px,
+        transparent 4px
+    );
+}
+body.dark-theme .next-food-panel::after {
+    background: rgba(255, 255, 255, 0.08);
+    animation: panelFlickerDark 0.2s steps(2) infinite;
+}
+body.dark-theme .next-food-label {
+    animation: textGlitchDark 0.3s infinite alternate;
+}
+
+/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА (обёртка) */
+.mini-canvas-glitch {
+    position: relative;
+}
+.mini-canvas-glitch::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.05) 0px,
+        rgba(0, 0, 0, 0.05) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+    pointer-events: none;
+    z-index: 2;
+    animation: scanlines 0.2s linear infinite;
+}
+.mini-canvas-glitch::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.01);
+    pointer-events: none;
+    z-index: 1;
+    animation: flicker 0.15s steps(2) infinite;
+}
+
+/* МЯГКАЯ РЯБЬ ДЛЯ ГЛАВНОГО ЭКРАНА */
+.screen-glitch {
+    position: relative;
+}
+.screen-glitch::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.03) 0px,
+        rgba(0, 0, 0, 0.03) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+    pointer-events: none;
+    z-index: 10;
+    animation: screenScanlines 0.25s linear infinite;
+}
+.screen-glitch::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.008);
+    pointer-events: none;
+    z-index: 9;
+    animation: screenFlicker 0.2s steps(2) infinite;
+}
+
+/* АНИМАЦИИ */
+@keyframes scanlines {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(6px); }
+}
+@keyframes flicker {
+    0% { opacity: 0.4; background: rgba(255, 255, 255, 0.02); }
+    50% { opacity: 0.8; background: rgba(0, 0, 0, 0.03); }
+    100% { opacity: 0.4; background: rgba(255, 255, 255, 0.01); }
+}
+@keyframes screenScanlines {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(8px); }
+}
+@keyframes screenFlicker {
+    0% { opacity: 0.3; background: rgba(255, 255, 255, 0.01); }
+    50% { opacity: 0.7; background: rgba(0, 0, 0, 0.02); }
+    100% { opacity: 0.3; background: rgba(255, 255, 255, 0.005); }
+}
+@keyframes panelScanlines {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(4px); }
+}
+@keyframes panelFlicker {
+    0% { opacity: 0.3; background: rgba(0,0,0,0.05); }
+    50% { opacity: 0.8; background: rgba(255,255,255,0.02); }
+    100% { opacity: 0.3; background: rgba(0,0,0,0.03); }
+}
+@keyframes panelFlickerDark {
+    0% { opacity: 0.2; background: rgba(255, 255, 255, 0.03); }
+    50% { opacity: 0.6; background: rgba(0, 0, 0, 0.15); }
+    100% { opacity: 0.2; background: rgba(255, 255, 255, 0.02); }
+}
+@keyframes textGlitch {
+    0% { text-shadow: 0 0 0 transparent; opacity: 1; }
+    10% { text-shadow: -1px 0 0 rgba(255,0,0,0.3); }
+    20% { text-shadow: 1px 0 0 rgba(0,255,0,0.3); }
+    30% { text-shadow: 0 0 0 transparent; }
+    100% { opacity: 0.95; text-shadow: 0 0 1px currentColor; }
+}
+@keyframes textGlitchDark {
+    0% { text-shadow: 0 0 0 transparent; opacity: 1; }
+    10% { text-shadow: -1px 0 0 rgba(255,80,80,0.5); }
+    20% { text-shadow: 1px 0 0 rgba(80,255,80,0.5); }
+    30% { text-shadow: 0 0 0 transparent; }
+    100% { opacity: 0.9; text-shadow: 0 0 2px #8bac0f; }
+}
+
+/* АДАПТИВ */
+@media screen and (max-width: 360px) {
+    body { padding: 5px; }
+    .phone-wrapper { padding: 10px; gap: 8px; }
+    .top-panel { padding: 4px 8px; }
+    .top-panel h1 { font-size: 0.7rem; }
+    .next-food-panel { padding: 3px 6px; gap: 3px; }
+    .next-food-label { font-size: 0.4rem; }
+    #miniCanvas { width: 24px; height: 24px; }
+    .screen { padding: 5px; }
+    .hud { font-size: 0.55rem; padding-bottom: 4px; margin-bottom: 4px; }
+    .dpad-container { gap: 5px; margin-bottom: 8px; }
+    .btn-dir, .btn-center { height: 48px; font-size: 1rem; }
+    .btn-side { height: 36px; font-size: 0.55rem; }
+}
+
+@media screen and (max-height: 650px) {
+    body { justify-content: flex-start; overflow-y: auto; } 
+    .phone-wrapper { gap: 8px; padding: 10px; }
+    .btn-dir, .btn-center { height: 45px; }
+    .btn-side { height: 35px; }
+}
+
+@media screen and (max-height: 600px) {
+    .btn-dir, .btn-center { height: 40px; font-size: 0.9rem; }
+    .btn-side { height: 32px; font-size: 0.5rem; }
+    .dpad-container { gap: 4px; margin-bottom: 5px; }
+    .phone-wrapper { padding: 8px; gap: 6px; }
+}
