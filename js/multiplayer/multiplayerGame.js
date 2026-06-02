@@ -16,6 +16,7 @@ export class MultiplayerGame {
         this.myDirection = { dx: 1, dy: 0 };
         this.nextDirection = { dx: 1, dy: 0 };
         this.gameLoopInterval = null;
+        this.lastUpdateTime = 0;
     }
 
     init(isHost) {
@@ -60,7 +61,6 @@ export class MultiplayerGame {
         this.tileCount = 20;
         
         if (this.isHost) {
-            // Хост - змейка слева, движется вправо
             this.mySnake = [
                 { x: 8, y: 10 },
                 { x: 7, y: 10 },
@@ -74,7 +74,6 @@ export class MultiplayerGame {
             this.myDirection = { dx: 1, dy: 0 };
             this.nextDirection = { dx: 1, dy: 0 };
         } else {
-            // Клиент - змейка справа, движется влево
             this.mySnake = [
                 { x: 12, y: 10 },
                 { x: 13, y: 10 },
@@ -93,8 +92,8 @@ export class MultiplayerGame {
         this.opponentScore = 0;
         this.generateFood();
         this.game.updateMultiplayerHUD(0, 0);
-        console.log("Initial snakes - my:", this.mySnake, "opponent:", this.opponentSnake);
         console.log("Initial direction:", this.myDirection);
+        console.log("nextDirection:", this.nextDirection);
     }
 
     generateFood() {
@@ -126,21 +125,19 @@ export class MultiplayerGame {
         
         console.log("START GAME EXECUTED!");
         this.gameActive = true;
-        
-        // Отправляем начальное состояние
-        this.sendGameState();
+        this.lastUpdateTime = Date.now();
         
         // Запускаем игровой цикл
         if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
         this.gameLoopInterval = setInterval(() => {
             this.update();
-        }, 150);
+        }, 100); // Увеличил частоту обновления
     }
 
     update() {
         if (!this.gameActive) return;
         
-        // Применяем направление
+        // ПРИМЕНЯЕМ НАПРАВЛЕНИЕ - ЭТО ГЛАВНОЕ!
         this.myDirection = { ...this.nextDirection };
         
         // Движение змейки
@@ -222,8 +219,9 @@ export class MultiplayerGame {
             return;
         }
         
+        // СОХРАНЯЕМ НОВОЕ НАПРАВЛЕНИЕ
         this.nextDirection = { dx, dy };
-        console.log("New direction set:", this.nextDirection);
+        console.log("New direction set - nextDirection:", this.nextDirection, "current myDirection:", this.myDirection);
     }
 
     endGame(message) {
@@ -247,10 +245,7 @@ export class MultiplayerGame {
     }
 
     draw(ctx, tileSize) {
-        if (!this.food) {
-            console.log("No food to draw");
-            return;
-        }
+        if (!this.food) return;
         
         // Еда
         ctx.fillStyle = "#ff4d4d";
