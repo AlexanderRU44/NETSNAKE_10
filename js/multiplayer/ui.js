@@ -1,4 +1,4 @@
-// ui.js - исправленный (НЕ вызываем disconnect при старте игры)
+// ui.js
 export class MultiplayerUI {
     constructor(game, peerManager, multiplayerGame) {
         this.game = game;
@@ -68,7 +68,7 @@ export class MultiplayerUI {
             }
         };
         backBtn.onclick = () => {
-            this.close(true); // true = полное закрытие с отключением
+            this.close(true);
             this.game.currentScreen = "MAIN";
         };
         
@@ -153,12 +153,11 @@ export class MultiplayerUI {
     }
 
     startGame() {
-        console.log("UI startGame called");
-        // Закрываем UI панель, НО НЕ отключаем peerManager!
-        this.close(false); // false = не отключать peerManager
+        console.log("UI startGame called, isHost:", this.isHost);
+        this.close(false);
         this.game.startMultiplayerMode(this.multiplayerGame);
-        // Запускаем игру
         this.multiplayerGame.init(this.isHost);
+        console.log("Game should be running now");
     }
 
     close(disconnect = false) {
@@ -168,11 +167,9 @@ export class MultiplayerUI {
             this.panel.remove();
             this.panel = null;
         }
-        
         if (disconnect && this.peerManager) {
             this.peerManager.disconnect();
         }
-        
         this.roomCode = null;
         this.isConnecting = false;
     }
