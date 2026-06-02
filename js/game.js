@@ -471,14 +471,13 @@ export class Game {
     }
 
     handleInput(act) {
-        console.log("handleInput:", act, "isMultiplayerMode:", this.isMultiplayerMode);
+        console.log("handleInput:", act, "isMultiplayerMode:", this.isMultiplayerMode, "currentScreen:", this.currentScreen);
         
         if (this.currentScreen === "EDIT_NAME" || this.currentScreen === "INTRO") return;
-        if (this.currentScreen === "MULTIPLAYER") return;
         
         initAudio();
         
-        // МУЛЬТИПЛЕЕРНЫЙ ВВОД
+        // ========== МУЛЬТИПЛЕЕРНЫЙ ВВОД - ПЕРВЫМ ДЕЛОМ! ==========
         if (this.isMultiplayerMode && this.multiplayerGame && this.multiplayerGame.gameActive) {
             console.log("Multiplayer input processing:", act);
             if (act === "UP" && this.multiplayerGame.myDirection.dy === 0) {
@@ -493,6 +492,10 @@ export class Game {
             return;
         }
         
+        // Экран мультиплеерного меню - не обрабатываем ввод (кнопки HTML)
+        if (this.currentScreen === "MULTIPLAYER") return;
+        
+        // ========== ОСТАЛЬНОЙ КОД (ОДИНОЧНАЯ ИГРА) ==========
         if (!this.isPaused) {
             this.cheatSequence.push(act);
             if (this.cheatSequence.length > 3) this.cheatSequence.shift();
