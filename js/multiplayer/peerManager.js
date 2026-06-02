@@ -1,6 +1,6 @@
-// peerManager.js - мультиплеер через Firebase
+// peerManager.js - исправленный
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
@@ -25,6 +25,7 @@ export class PeerManager {
         this.unsubscribe = null;
         this.roomRef = null;
         this.connected = false;
+        this.gameStarted = false;
     }
 
     async init() {
@@ -45,7 +46,8 @@ export class PeerManager {
                 createdAt: Date.now(),
                 gameData: null,
                 hostReady: false,
-                clientReady: false
+                clientReady: false,
+                gameStarted: false
             });
             console.log("Room created successfully");
             this.setupRoom(roomRef);
@@ -67,7 +69,7 @@ export class PeerManager {
             const roomSnap = await getDoc(roomRef);
             
             if (!roomSnap.exists()) {
-                throw new Error("Room not found. Make sure the host created the room first.");
+                throw new Error("Room not found");
             }
             
             const roomData = roomSnap.data();
@@ -87,7 +89,7 @@ export class PeerManager {
     setupRoom(roomRef) {
         this.roomRef = roomRef;
         
-        this.unsubscribe = onSnapshot(roomRef, (snapshot) => {
+        this.unsubscribe = onSnapshot(roomRef, async (snapshot) => {
             if (!snapshot.exists()) {
                 console.log("Room deleted");
                 if (this.onOpponentDisconnect) this.onOpponentDisconnect();
@@ -97,20 +99,25 @@ export class PeerManager {
             const data = snapshot.data();
             console.log("Room update:", data);
             
+            // Получаем игровые данные
             if (data.gameData && this.onDataReceived) {
                 console.log("Received game data");
                 this.onDataReceived(data.gameData);
                 if (!this.isHost) {
-                    updateDoc(roomRef, { gameData: null });
+                    await updateDoc(roomRef, { gameData: null });
                 }
             }
             
-            if (this.isHost && data.clientReady) {
-                console.log("Client ready, starting game");
-                if (this.onConnectionOpen) this.onConnectionOpen(true);
-            } else if (!this.isHost && data.hostReady) {
-                console.log("Host ready, starting game");
-                if (this.onConnectionOpen) this.onConnectionOpen(false);
+            // КОГДА ОБА ГОТОВЫ - ЗАПУСКАЕМ ИГРУ
+            if (data.hostReady && data.clientReady && !data.gameStarted) {
+                console.log("BOTH PLAYERS READY! STARTING GAME!");
+                await updateDoc(roomRef, { gameStarted: true });
+                
+                // ВАЖНО: вызываем onConnectionOpen для обоих игроков
+                if (this.onConnectionOpen) {
+                    console.log("Calling onConnectionOpen with isHost:", this.isHost);
+                    this.onConnectionOpen(this.isHost);
+                }
             }
         }, (error) => {
             console.error("Snapshot error:", error);
@@ -165,5 +172,6 @@ export class PeerManager {
         this.connected = false;
         this.roomId = null;
         this.isHost = false;
+        this.gameStarted = false;
     }
 }
