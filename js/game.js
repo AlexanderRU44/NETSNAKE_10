@@ -577,7 +577,8 @@ export class Game {
 
         this.renderer.clearCanvas();
         
-        // МУЛЬТИПЛЕЕР - ПЕРВЫМ!
+        // ========== МУЛЬТИПЛЕЕР ==========
+        // Проверяем мультиплеерный режим игры
         if (this.isMultiplayerMode && this.multiplayerGame) {
             if (this.multiplayerGame.gameActive) {
                 this.multiplayerGame.draw(this.ctx, this.gridSize);
@@ -595,9 +596,19 @@ export class Game {
             return;
         }
         
-        // Отрисовка мультиплеерного UI
-        if (this.currentScreen === "MULTIPLAYER" && this.multiplayerUI && this.multiplayerUI.isActive) {
-            this.multiplayerUI.draw(this.ctx, this.canvas.width, this.canvas.height);
+        // Мультиплеерное меню (только фон, кнопки HTML)
+        if (this.currentScreen === "MULTIPLAYER") {
+            this.ctx.fillStyle = "rgba(0,0,0,0.85)";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = "#ffffff";
+            this.ctx.font = "12px 'Press Start 2P'";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText("MULTIPLAYER", this.canvas.width / 2, this.canvas.height / 2 - 30);
+            this.ctx.font = "8px 'Press Start 2P'";
+            this.ctx.fillStyle = "#8bac0f";
+            this.ctx.fillText("Use the buttons below", this.canvas.width / 2, this.canvas.height / 2 + 20);
+            this.particleSystem.update();
+            this.particleSystem.draw(this.ctx);
             return;
         }
 
