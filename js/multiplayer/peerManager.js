@@ -1,6 +1,6 @@
 // peerManager.js - мультиплеер через Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCiTAsiUVnWwT4DfIi70wvYwuVJnYqoK20",
@@ -21,102 +21,149 @@ export class PeerManager {
         this.onDataReceived = null;
         this.onConnectionOpen = null;
         this.onOpponentDisconnect = null;
+        this.onError = null;
         this.unsubscribe = null;
         this.roomRef = null;
         this.connected = false;
     }
 
     async init() {
+        console.log("Firebase initialized");
         return "firebase-ready";
     }
 
-    createRoom() {
+    async createRoom() {
         this.isHost = true;
         this.roomId = Math.floor(100000 + Math.random() * 900000).toString();
-        this.setupRoom();
-        return this.roomId;
-    }
-
-    async joinRoom(roomCode) {
-        this.isHost = false;
-        this.roomId = roomCode;
         
-        const roomRef = doc(db, "gameRooms", this.roomId);
-        const roomSnap = await getDoc(roomRef);
+        console.log("Creating room:", this.roomId);
         
-        if (!roomSnap.exists()) throw new Error("Room not found");
-        if (roomSnap.data().players >= 2) throw new Error("Room is full");
-        
-        await this.setupRoom();
-    }
-
-    async setupRoom() {
-        this.roomRef = doc(db, "gameRooms", this.roomId);
-        
-        if (this.isHost) {
-            await setDoc(this.roomRef, {
+        try {
+            const roomRef = doc(db, "gameRooms", this.roomId);
+            await setDoc(roomRef, {
                 players: 1,
                 createdAt: Date.now(),
                 gameData: null,
                 hostReady: false,
                 clientReady: false
             });
-        } else {
-            await updateDoc(this.roomRef, { players: 2 });
+            console.log("Room created successfully");
+            this.setupRoom(roomRef);
+            return this.roomId;
+        } catch (error) {
+            console.error("Create room error:", error);
+            throw error;
         }
+    }
+
+    async joinRoom(roomCode) {
+        this.isHost = false;
+        this.roomId = roomCode;
         
-        this.unsubscribe = onSnapshot(this.roomRef, (snapshot) => {
+        console.log("Joining room:", roomCode);
+        
+        try {
+            const roomRef = doc(db, "gameRooms", this.roomId);
+            const roomSnap = await getDoc(roomRef);
+            
+            if (!roomSnap.exists()) {
+                throw new Error("Room not found. Make sure the host created the room first.");
+            }
+            
+            const roomData = roomSnap.data();
+            if (roomData.players >= 2) {
+                throw new Error("Room is full");
+            }
+            
+            await updateDoc(roomRef, { players: 2 });
+            console.log("Joined room successfully");
+            this.setupRoom(roomRef);
+        } catch (error) {
+            console.error("Join room error:", error);
+            throw error;
+        }
+    }
+
+    setupRoom(roomRef) {
+        this.roomRef = roomRef;
+        
+        this.unsubscribe = onSnapshot(roomRef, (snapshot) => {
             if (!snapshot.exists()) {
+                console.log("Room deleted");
                 if (this.onOpponentDisconnect) this.onOpponentDisconnect();
                 return;
             }
             
             const data = snapshot.data();
+            console.log("Room update:", data);
             
             if (data.gameData && this.onDataReceived) {
+                console.log("Received game data");
                 this.onDataReceived(data.gameData);
                 if (!this.isHost) {
-                    updateDoc(this.roomRef, { gameData: null });
+                    updateDoc(roomRef, { gameData: null });
                 }
             }
             
             if (this.isHost && data.clientReady) {
+                console.log("Client ready, starting game");
                 if (this.onConnectionOpen) this.onConnectionOpen(true);
             } else if (!this.isHost && data.hostReady) {
+                console.log("Host ready, starting game");
                 if (this.onConnectionOpen) this.onConnectionOpen(false);
             }
+        }, (error) => {
+            console.error("Snapshot error:", error);
+            if (this.onError) this.onError(error);
         });
         
-        if (this.isHost) {
-            await updateDoc(this.roomRef, { hostReady: true });
-        } else {
-            await updateDoc(this.roomRef, { clientReady: true });
-        }
+        // Отправляем сигнал готовности
+        const readyField = this.isHost ? 'hostReady' : 'clientReady';
+        updateDoc(roomRef, { [readyField]: true }).catch(err => console.error("Ready update error:", err));
         
         this.connected = true;
     }
 
     async sendMessage(message) {
-        if (!this.roomRef) return false;
+        if (!this.roomRef) {
+            console.log("No room reference");
+            return false;
+        }
+        
         try {
             await updateDoc(this.roomRef, { gameData: message });
+            console.log("Message sent");
             return true;
         } catch (error) {
+            console.error("Send message error:", error);
             return false;
         }
     }
 
     isConnected() {
-        return this.connected;
+        return this.connected && this.roomRef !== null;
     }
 
     async disconnect() {
-        if (this.unsubscribe) this.unsubscribe();
-        if (this.roomRef) {
-            try { await deleteDoc(this.roomRef); } catch(e) {}
+        console.log("Disconnecting...");
+        
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
         }
+        
+        if (this.roomRef) {
+            try {
+                await deleteDoc(this.roomRef);
+                console.log("Room deleted");
+            } catch(e) {
+                console.log("Could not delete room:", e);
+            }
+            this.roomRef = null;
+        }
+        
         this.connected = false;
         this.roomId = null;
-        this.roomRef = null;
+        this.isHost = false;
     }
 }
