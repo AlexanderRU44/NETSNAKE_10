@@ -6,9 +6,8 @@ export class MultiplayerUI {
         this.multiplayerGame = multiplayerGame;
         this.isActive = false;
         this.roomCode = null;
-        this.status = "Waiting...";
+        this.status = "Choose action...";
         this.isHost = false;
-        this.joinCode = "";
         this.isConnecting = false;
     }
 
@@ -17,7 +16,6 @@ export class MultiplayerUI {
         this.isActive = true;
         this.game.currentScreen = "MULTIPLAYER";
         this.game.isPaused = true;
-        this.joinCode = "";
         this.roomCode = null;
         this.status = "Choose action...";
         this.isConnecting = false;
@@ -79,24 +77,13 @@ export class MultiplayerUI {
             ctx.font = "9px 'Press Start 2P'";
             ctx.fillText("CREATE", 130, 252);
             
-            // Поле для ввода кода
+            // Поле для ввода кода (упрощённое)
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 1;
             ctx.strokeRect(200, 230, 130, 35);
             ctx.fillStyle = "#ffffff";
             ctx.font = "8px 'Press Start 2P'";
-            
-            if (this.joinCode) {
-                ctx.fillStyle = "rgba(0,0,0,0.7)";
-                ctx.fillRect(200, 230, 130, 35);
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "14px monospace";
-                // Показываем код с мигающим курсором
-                const displayCode = this.joinCode + (Math.floor(Date.now() / 500) % 2 === 0 ? "_" : " ");
-                ctx.fillText(displayCode, 265, 253);
-            } else {
-                ctx.fillText("ENTER CODE", 265, 248);
-            }
+            ctx.fillText("TAP TO ENTER", 265, 248);
             
             // Кнопка JOIN
             ctx.fillStyle = "#7ed321";
@@ -104,6 +91,11 @@ export class MultiplayerUI {
             ctx.fillStyle = "#ffffff";
             ctx.font = "9px 'Press Start 2P'";
             ctx.fillText("JOIN", 265, 292);
+            
+            // Подсказка
+            ctx.font = "7px 'Press Start 2P'";
+            ctx.fillStyle = "#8b949e";
+            ctx.fillText("Enter 6-digit code", 200, 325);
         } else if (this.roomCode && !this.isConnecting) {
             // Кнопка COPY
             ctx.fillStyle = "#58a6ff";
@@ -140,7 +132,7 @@ export class MultiplayerUI {
             return true;
         }
         
-        // Если в процессе ожидания - только BACK работает
+        // Если есть код комнаты - режим ожидания
         if (this.roomCode && !this.isConnecting) {
             // Кнопка COPY
             if (mouseX >= copyBtn.x && mouseX <= copyBtn.x + copyBtn.w &&
@@ -151,6 +143,7 @@ export class MultiplayerUI {
             return false;
         }
         
+        // Режим выбора действия
         if (!this.roomCode) {
             // Кнопка CREATE
             if (mouseX >= createBtn.x && mouseX <= createBtn.x + createBtn.w &&
@@ -162,21 +155,14 @@ export class MultiplayerUI {
             // Кнопка JOIN
             if (mouseX >= joinBtn.x && mouseX <= joinBtn.x + joinBtn.w &&
                 mouseY >= joinBtn.y && mouseY <= joinBtn.y + joinBtn.h) {
-                if (this.joinCode && this.joinCode.length === 6) {
-                    this.joinRoom(this.joinCode);
-                } else {
-                    this.status = "Enter 6-digit code!";
-                    setTimeout(() => {
-                        if (this.isActive) this.status = "Choose action...";
-                    }, 2000);
-                }
+                this.showCodeInput();
                 return true;
             }
             
             // Клик по полю ввода кода
             if (mouseX >= codeField.x && mouseX <= codeField.x + codeField.w &&
                 mouseY >= codeField.y && mouseY <= codeField.y + codeField.h) {
-                this.showVirtualKeyboard();
+                this.showCodeInput();
                 return true;
             }
         }
@@ -184,37 +170,20 @@ export class MultiplayerUI {
         return false;
     }
 
-    // Показать виртуальную клавиатуру для ввода кода
-    showVirtualKeyboard() {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.maxLength = 6;
-        input.inputMode = 'numeric';
-        input.pattern = '\\d*';
-        input.style.position = 'fixed';
-        input.style.top = '-100px';
-        input.style.left = '-100px';
-        input.style.opacity = '0';
-        document.body.appendChild(input);
+    // Показать диалог ввода кода (работает на Android)
+    showCodeInput() {
+        // Используем стандартный prompt - работает на всех устройствах
+        const code = prompt("Введите 6-значный код комнаты:", "");
         
-        input.focus();
-        
-        const handleInput = () => {
-            let val = input.value.replace(/[^0-9]/g, '').substring(0, 6);
-            this.joinCode = val;
-            input.removeEventListener('input', handleInput);
-            input.removeEventListener('blur', handleBlur);
-            document.body.removeChild(input);
-        };
-        
-        const handleBlur = () => {
-            input.removeEventListener('input', handleInput);
-            input.removeEventListener('blur', handleBlur);
-            document.body.removeChild(input);
-        };
-        
-        input.addEventListener('input', handleInput);
-        input.addEventListener('blur', handleBlur);
+        if (code && code.length === 6 && /^\d+$/.test(code)) {
+            this.joinRoom(code);
+        } else if (code && code.length > 0) {
+            alert("Код должен состоять из 6 цифр!");
+            this.status = "Invalid code!";
+            setTimeout(() => {
+                if (this.isActive) this.status = "Choose action...";
+            }, 2000);
+        }
     }
 
     // Создание комнаты (хост)
@@ -228,6 +197,9 @@ export class MultiplayerUI {
             this.isHost = true;
             this.status = "Waiting for opponent...";
             this.isConnecting = false;
+            
+            // Показываем код в alert для удобства
+            alert("Your room code: " + this.roomCode + "\nSend this code to your friend!");
             
             // Ожидаем подключения оппонента
             this.peerManager.onConnectionOpen = () => {
@@ -336,12 +308,14 @@ export class MultiplayerUI {
                     }
                 }, 2000);
             }).catch(() => {
-                this.status = "Press Ctrl+C to copy";
+                // Если не удалось скопировать, показываем код в alert
+                alert("Room code: " + this.roomCode);
+                this.status = "Code: " + this.roomCode;
                 setTimeout(() => {
-                    if (this.isActive && this.status === "Press Ctrl+C to copy") {
+                    if (this.isActive) {
                         this.status = "Waiting for opponent...";
                     }
-                }, 2000);
+                }, 3000);
             });
         }
     }
@@ -357,7 +331,6 @@ export class MultiplayerUI {
     close() {
         this.isActive = false;
         this.roomCode = null;
-        this.joinCode = "";
         this.isConnecting = false;
     }
 }
