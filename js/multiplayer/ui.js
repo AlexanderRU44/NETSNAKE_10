@@ -8,13 +8,19 @@ export class MultiplayerUI {
         this.roomCode = null;
         this.status = "Waiting...";
         this.isHost = false;
+        this.joinCode = "";
+        this.isConnecting = false;
     }
 
-    // Создание UI внутри игрового поля
+    // Создание UI
     createUI() {
         this.isActive = true;
         this.game.currentScreen = "MULTIPLAYER";
         this.game.isPaused = true;
+        this.joinCode = "";
+        this.roomCode = null;
+        this.status = "Choose action...";
+        this.isConnecting = false;
     }
 
     // Отрисовка UI на канвасе
@@ -51,11 +57,21 @@ export class MultiplayerUI {
         
         // Статус
         ctx.font = "9px 'Press Start 2P'";
-        ctx.fillStyle = "#58a6ff";
-        ctx.fillText(this.status, 200, 200);
+        ctx.fillStyle = this.isConnecting ? "#ffb900" : "#58a6ff";
+        ctx.fillText(this.status, 200, 205);
         
-        // Кнопки
-        if (!this.roomCode) {
+        // Анимация ожидания
+        if (this.status === "Waiting for opponent..." && Math.floor(Date.now() / 500) % 2 === 0) {
+            ctx.fillStyle = "rgba(88, 166, 255, 0.2)";
+            ctx.fillRect(44, 44, 312, 312);
+        }
+        
+        if (this.status === "Connecting..." && Math.floor(Date.now() / 300) % 2 === 0) {
+            ctx.fillStyle = "rgba(255, 185, 0, 0.2)";
+            ctx.fillRect(44, 44, 312, 312);
+        }
+        
+        if (!this.roomCode && !this.isConnecting) {
             // Кнопка CREATE
             ctx.fillStyle = "#4a90e2";
             ctx.fillRect(70, 230, 120, 35);
@@ -69,7 +85,18 @@ export class MultiplayerUI {
             ctx.strokeRect(200, 230, 130, 35);
             ctx.fillStyle = "#ffffff";
             ctx.font = "8px 'Press Start 2P'";
-            ctx.fillText("ENTER CODE", 265, 248);
+            
+            if (this.joinCode) {
+                ctx.fillStyle = "rgba(0,0,0,0.7)";
+                ctx.fillRect(200, 230, 130, 35);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px monospace";
+                // Показываем код с мигающим курсором
+                const displayCode = this.joinCode + (Math.floor(Date.now() / 500) % 2 === 0 ? "_" : " ");
+                ctx.fillText(displayCode, 265, 253);
+            } else {
+                ctx.fillText("ENTER CODE", 265, 248);
+            }
             
             // Кнопка JOIN
             ctx.fillStyle = "#7ed321";
@@ -77,8 +104,8 @@ export class MultiplayerUI {
             ctx.fillStyle = "#ffffff";
             ctx.font = "9px 'Press Start 2P'";
             ctx.fillText("JOIN", 265, 292);
-        } else {
-            // Кнопка COPY (если есть код)
+        } else if (this.roomCode && !this.isConnecting) {
+            // Кнопка COPY
             ctx.fillStyle = "#58a6ff";
             ctx.fillRect(100, 280, 200, 35);
             ctx.fillStyle = "#ffffff";
@@ -92,38 +119,20 @@ export class MultiplayerUI {
         ctx.fillStyle = "#ffffff";
         ctx.font = "8px 'Press Start 2P'";
         ctx.fillText("BACK", 200, 347);
-        
-        // Если есть ввод кода и показываем индикатор
-        if (this.joinCodeInput && this.joinCodeInput.active) {
-            ctx.fillStyle = "rgba(0,0,0,0.7)";
-            ctx.fillRect(200, 230, 130, 35);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "14px monospace";
-            ctx.fillText(this.joinCodeInput.value + (this.joinCodeInput.blink ? "_" : " "), 265, 253);
-        }
-        
-        // Анимация мигания для ожидания
-        if (this.status === "Waiting for opponent..." && Math.floor(Date.now() / 500) % 2 === 0) {
-            ctx.fillStyle = "rgba(88, 166, 255, 0.3)";
-            ctx.fillRect(44, 44, 312, 312);
-        }
     }
 
     // Обработка кликов по канвасу
     handleClick(mouseX, mouseY) {
         if (!this.isActive) return false;
+        if (this.isConnecting) return false;
         
-        const canvasWidth = this.game.canvas.width;
-        const canvasHeight = this.game.canvas.height;
-        
-        // Определяем границы кнопок
+        const backBtn = { x: 140, y: 330, w: 120, h: 25 };
         const createBtn = { x: 70, y: 230, w: 120, h: 35 };
         const joinBtn = { x: 200, y: 270, w: 130, h: 35 };
-        const copyBtn = { x: 100, y: 280, w: 200, h: 35 };
-        const backBtn = { x: 140, y: 330, w: 120, h: 25 };
         const codeField = { x: 200, y: 230, w: 130, h: 35 };
+        const copyBtn = { x: 100, y: 280, w: 200, h: 35 };
         
-        // Проверка координат
+        // Кнопка BACK
         if (mouseX >= backBtn.x && mouseX <= backBtn.x + backBtn.w &&
             mouseY >= backBtn.y && mouseY <= backBtn.y + backBtn.h) {
             this.close();
@@ -131,18 +140,35 @@ export class MultiplayerUI {
             return true;
         }
         
+        // Если в процессе ожидания - только BACK работает
+        if (this.roomCode && !this.isConnecting) {
+            // Кнопка COPY
+            if (mouseX >= copyBtn.x && mouseX <= copyBtn.x + copyBtn.w &&
+                mouseY >= copyBtn.y && mouseY <= copyBtn.y + copyBtn.h) {
+                this.copyRoomCode();
+                return true;
+            }
+            return false;
+        }
+        
         if (!this.roomCode) {
-            // Режим выбора - CREATE или JOIN
+            // Кнопка CREATE
             if (mouseX >= createBtn.x && mouseX <= createBtn.x + createBtn.w &&
                 mouseY >= createBtn.y && mouseY <= createBtn.y + createBtn.h) {
                 this.createRoom();
                 return true;
             }
             
+            // Кнопка JOIN
             if (mouseX >= joinBtn.x && mouseX <= joinBtn.x + joinBtn.w &&
                 mouseY >= joinBtn.y && mouseY <= joinBtn.y + joinBtn.h) {
-                if (this.joinCodeInput && this.joinCodeInput.value && this.joinCodeInput.value.length === 6) {
-                    this.joinRoom(this.joinCodeInput.value);
+                if (this.joinCode && this.joinCode.length === 6) {
+                    this.joinRoom(this.joinCode);
+                } else {
+                    this.status = "Enter 6-digit code!";
+                    setTimeout(() => {
+                        if (this.isActive) this.status = "Choose action...";
+                    }, 2000);
                 }
                 return true;
             }
@@ -153,13 +179,6 @@ export class MultiplayerUI {
                 this.showVirtualKeyboard();
                 return true;
             }
-        } else {
-            // Режим ожидания - кнопка COPY
-            if (mouseX >= copyBtn.x && mouseX <= copyBtn.x + copyBtn.w &&
-                mouseY >= copyBtn.y && mouseY <= copyBtn.y + copyBtn.h) {
-                this.copyRoomCode();
-                return true;
-            }
         }
         
         return false;
@@ -167,62 +186,48 @@ export class MultiplayerUI {
 
     // Показать виртуальную клавиатуру для ввода кода
     showVirtualKeyboard() {
-        // Создаем инпут в DOM для ввода кода
         const input = document.createElement('input');
         input.type = 'text';
         input.maxLength = 6;
+        input.inputMode = 'numeric';
+        input.pattern = '\\d*';
         input.style.position = 'fixed';
         input.style.top = '-100px';
         input.style.left = '-100px';
         input.style.opacity = '0';
-        input.style.pointerEvents = 'none';
         document.body.appendChild(input);
         
         input.focus();
         
         const handleInput = () => {
             let val = input.value.replace(/[^0-9]/g, '').substring(0, 6);
-            this.joinCodeInput = { value: val, active: true, blink: true };
+            this.joinCode = val;
             input.removeEventListener('input', handleInput);
             input.removeEventListener('blur', handleBlur);
             document.body.removeChild(input);
-            
-            // Если введено 6 цифр, автоматически подключаемся
-            if (val.length === 6) {
-                setTimeout(() => this.joinRoom(val), 100);
-            }
         };
         
         const handleBlur = () => {
             input.removeEventListener('input', handleInput);
             input.removeEventListener('blur', handleBlur);
             document.body.removeChild(input);
-            this.joinCodeInput = { value: "", active: false, blink: false };
         };
         
         input.addEventListener('input', handleInput);
         input.addEventListener('blur', handleBlur);
-        
-        this.joinCodeInput = { value: "", active: true, blink: true };
-        
-        // Анимация мигания курсора
-        const blinkInterval = setInterval(() => {
-            if (this.joinCodeInput && this.joinCodeInput.active) {
-                this.joinCodeInput.blink = !this.joinCodeInput.blink;
-            } else {
-                clearInterval(blinkInterval);
-            }
-        }, 500);
     }
 
     // Создание комнаты (хост)
     async createRoom() {
+        this.isConnecting = true;
         this.status = "Creating room...";
+        
         try {
             await this.peerManager.init();
             this.roomCode = this.peerManager.createRoom();
             this.isHost = true;
             this.status = "Waiting for opponent...";
+            this.isConnecting = false;
             
             // Ожидаем подключения оппонента
             this.peerManager.onConnectionOpen = () => {
@@ -234,24 +239,45 @@ export class MultiplayerUI {
             
             this.peerManager.onOpponentDisconnect = () => {
                 this.status = "Opponent disconnected!";
+                this.isConnecting = false;
                 setTimeout(() => {
-                    this.close();
-                    this.game.showMultiplayerMessage("Opponent disconnected");
+                    if (this.isActive) {
+                        this.close();
+                        this.game.showMultiplayerMessage("Opponent disconnected");
+                    }
                 }, 2000);
             };
             
             this.peerManager.onError = (error) => {
-                this.status = "Error: " + error.message;
+                console.error('Peer error:', error);
+                this.status = "Connection error!";
+                this.isConnecting = false;
+                setTimeout(() => {
+                    if (this.isActive) {
+                        this.close();
+                        this.game.showMultiplayerMessage("Connection failed. Check internet.");
+                    }
+                }, 2000);
             };
+            
         } catch (error) {
-            this.status = "Failed to create room";
-            console.error(error);
+            console.error('Create room error:', error);
+            this.status = "Failed to create room!";
+            this.isConnecting = false;
+            setTimeout(() => {
+                if (this.isActive) {
+                    this.close();
+                    this.game.showMultiplayerMessage("Failed to create room. Check internet.");
+                }
+            }, 2000);
         }
     }
 
     // Подключение к комнате (клиент)
     async joinRoom(roomCode) {
+        this.isConnecting = true;
         this.status = "Connecting...";
+        
         try {
             await this.peerManager.init();
             await this.peerManager.joinRoom(roomCode);
@@ -265,18 +291,37 @@ export class MultiplayerUI {
             
             this.peerManager.onOpponentDisconnect = () => {
                 this.status = "Opponent disconnected!";
+                this.isConnecting = false;
                 setTimeout(() => {
-                    this.close();
-                    this.game.showMultiplayerMessage("Opponent disconnected");
+                    if (this.isActive) {
+                        this.close();
+                        this.game.showMultiplayerMessage("Opponent disconnected");
+                    }
                 }, 2000);
             };
             
             this.peerManager.onError = (error) => {
-                this.status = "Error: " + error.message;
+                console.error('Peer error:', error);
+                this.status = "Connection error!";
+                this.isConnecting = false;
+                setTimeout(() => {
+                    if (this.isActive) {
+                        this.close();
+                        this.game.showMultiplayerMessage("Connection failed. Check internet.");
+                    }
+                }, 2000);
             };
+            
         } catch (error) {
-            this.status = "Connection failed";
-            console.error(error);
+            console.error('Join room error:', error);
+            this.status = "Failed to join!";
+            this.isConnecting = false;
+            setTimeout(() => {
+                if (this.isActive) {
+                    this.close();
+                    this.game.showMultiplayerMessage("Failed to join room. Check code and internet.");
+                }
+            }, 2000);
         }
     }
 
@@ -286,7 +331,16 @@ export class MultiplayerUI {
             navigator.clipboard.writeText(this.roomCode).then(() => {
                 this.status = "Code copied!";
                 setTimeout(() => {
-                    this.status = "Waiting for opponent...";
+                    if (this.isActive && this.status === "Code copied!") {
+                        this.status = "Waiting for opponent...";
+                    }
+                }, 2000);
+            }).catch(() => {
+                this.status = "Press Ctrl+C to copy";
+                setTimeout(() => {
+                    if (this.isActive && this.status === "Press Ctrl+C to copy") {
+                        this.status = "Waiting for opponent...";
+                    }
                 }, 2000);
             });
         }
@@ -303,6 +357,7 @@ export class MultiplayerUI {
     close() {
         this.isActive = false;
         this.roomCode = null;
-        this.joinCodeInput = null;
+        this.joinCode = "";
+        this.isConnecting = false;
     }
 }
