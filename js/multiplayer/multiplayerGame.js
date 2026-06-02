@@ -1,4 +1,4 @@
-// multiplayerGame.js - логика мультиплеерной игры
+// multiplayerGame.js - полная синхронизация
 import { playSound } from '../utils.js';
 
 export class MultiplayerGame {
@@ -17,44 +17,60 @@ export class MultiplayerGame {
         this.nextDirection = { dx: 1, dy: 0 };
         this.gameLoopInterval = null;
         this.lastUpdateTime = 0;
-        this.updateInterval = 50; // 20 FPS для сетевых обновлений
     }
 
-    // Инициализация мультиплеера
     init(isHost) {
         this.isHost = isHost;
         this.setupEventListeners();
         this.initGameState();
     }
 
-    // Настройка слушателей Peer
     setupEventListeners() {
         this.peerManager.onDataReceived = (data) => {
-            this.handleNetworkMessage(data);
-        };
-        
-        this.peerManager.onConnectionOpen = () => {
-            if (this.isHost) {
-                this.startGame();
+            console.log("Data received:", data.type);
+            
+            if (data.type === 'gameState') {
+                // Обновляем состояние оппонента
+                this.opponentSnake = data.snake;
+                this.opponentScore = data.score;
+                this.food = data.food;
+                this.game.updateMultiplayerHUD(this.myScore, this.opponentScore);
+            } 
+            else if (data.type === 'direction') {
+                // Обновляем направление оппонента (для плавности)
+                // Можно не обрабатывать, т.к. змейка синхронизируется через gameState
+            }
+            else if (data.type === 'gameEnd') {
+                this.game.showMultiplayerMessage(data.message);
+                this.gameActive = false;
+                if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
             }
         };
         
+        this.peerManager.onConnectionOpen = () => {
+            console.log("Connection opened! Starting game...");
+            this.startGame();
+        };
+        
         this.peerManager.onOpponentDisconnect = () => {
-            this.endGame('Opponent disconnected');
+            console.log("Opponent disconnected!");
+            this.game.showMultiplayerMessage("Opponent disconnected!");
+            this.gameActive = false;
+            if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
         };
         
         this.peerManager.onError = (error) => {
-            console.error('Peer error:', error);
-            this.endGame('Connection error: ' + error.message);
+            console.error("Peer error:", error);
+            this.game.showMultiplayerMessage("Connection error!");
+            this.gameActive = false;
         };
     }
 
-    // Инициализация игрового состояния
     initGameState() {
         this.tileCount = 20;
         
         if (this.isHost) {
-            // Хост - змейка слева
+            // Хост - змейка слева, движется вправо
             this.mySnake = [
                 { x: 8, y: 10 },
                 { x: 7, y: 10 },
@@ -68,7 +84,7 @@ export class MultiplayerGame {
             this.myDirection = { dx: 1, dy: 0 };
             this.nextDirection = { dx: 1, dy: 0 };
         } else {
-            // Клиент - змейка справа
+            // Клиент - змейка справа, движется влево
             this.mySnake = [
                 { x: 12, y: 10 },
                 { x: 13, y: 10 },
@@ -86,9 +102,9 @@ export class MultiplayerGame {
         this.myScore = 0;
         this.opponentScore = 0;
         this.generateFood();
+        this.game.updateMultiplayerHUD(0, 0);
     }
 
-    // Генерация еды (не на змейках)
     generateFood() {
         const maxAttempts = 100;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -98,17 +114,11 @@ export class MultiplayerGame {
             };
             
             let onSnake = false;
-            for (const segment of this.mySnake) {
-                if (segment.x === food.x && segment.y === food.y) {
-                    onSnake = true;
-                    break;
-                }
+            for (const seg of this.mySnake) {
+                if (seg.x === food.x && seg.y === food.y) onSnake = true;
             }
-            for (const segment of this.opponentSnake) {
-                if (segment.x === food.x && segment.y === food.y) {
-                    onSnake = true;
-                    break;
-                }
+            for (const seg of this.opponentSnake) {
+                if (seg.x === food.x && seg.y === food.y) onSnake = true;
             }
             
             if (!onSnake) {
@@ -118,21 +128,18 @@ export class MultiplayerGame {
         }
     }
 
-    // Старт игры
     startGame() {
+        console.log("Starting game loop");
         this.gameActive = true;
         this.lastUpdateTime = Date.now();
         
-        // Отправляем начальное состояние оппоненту
-        this.sendGameState();
-        
         // Запускаем игровой цикл
+        if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
         this.gameLoopInterval = setInterval(() => {
             this.update();
-        }, 100); // 10 FPS для игровой логики
+        }, 100); // 10 FPS
     }
 
-    // Игровой цикл
     update() {
         if (!this.gameActive) return;
         
@@ -159,25 +166,21 @@ export class MultiplayerGame {
             this.myScore++;
             playSound("eat", this.game.soundEnabled);
             this.generateFood();
-            this.sendGameState();
+            this.game.updateMultiplayerHUD(this.myScore, this.opponentScore);
         } else {
             this.mySnake.pop();
         }
         
         // Проверка столкновений
         if (this.checkCollisions()) {
-            this.endGame('You crashed!');
+            this.endGame('You crashed! You lose!');
             return;
         }
         
-        // Отправляем обновление оппоненту
+        // Отправляем состояние оппоненту
         this.sendGameState();
-        
-        // Обновляем UI
-        this.updateUI();
     }
 
-    // Проверка столкновений
     checkCollisions() {
         const head = this.mySnake[0];
         
@@ -189,8 +192,8 @@ export class MultiplayerGame {
         }
         
         // Столкновение со змейкой оппонента
-        for (const segment of this.opponentSnake) {
-            if (head.x === segment.x && head.y === segment.y) {
+        for (const seg of this.opponentSnake) {
+            if (head.x === seg.x && head.y === seg.y) {
                 return true;
             }
         }
@@ -198,40 +201,6 @@ export class MultiplayerGame {
         return false;
     }
 
-    // Обработка сетевых сообщений
-    handleNetworkMessage(data) {
-        switch (data.type) {
-            case 'gameState':
-                this.updateOpponentState(data);
-                break;
-            case 'direction':
-                this.updateOpponentDirection(data);
-                break;
-            case 'gameEnd':
-                this.endGame(data.message);
-                break;
-            case 'hostReady':
-                if (!this.isHost) {
-                    this.startGame();
-                }
-                break;
-        }
-    }
-
-    // Обновление состояния оппонента
-    updateOpponentState(data) {
-        this.opponentSnake = data.snake;
-        this.opponentScore = data.score;
-        this.food = data.food;
-        this.updateUI();
-    }
-
-    // Обновление направления оппонента
-    updateOpponentDirection(data) {
-        // Для отображения движения оппонента (опционально)
-    }
-
-    // Отправка состояния игры
     sendGameState() {
         if (!this.peerManager.isConnected()) return;
         
@@ -244,32 +213,28 @@ export class MultiplayerGame {
         });
     }
 
-    // Отправка направления движения
     sendDirection(dx, dy) {
         if (!this.gameActive) return;
         
+        // Нельзя развернуться на 180 градусов
+        if ((dx === -this.myDirection.dx && dy === -this.myDirection.dy)) {
+            return;
+        }
+        
         this.nextDirection = { dx, dy };
         
+        // Отправляем направление оппоненту (опционально)
         this.peerManager.sendMessage({
             type: 'direction',
             dx: dx,
-            dy: dy,
-            timestamp: Date.now()
+            dy: dy
         });
     }
 
-    // Обновление UI
-    updateUI() {
-        // Обновляем HUD в основной игре
-        if (this.game.updateMultiplayerHUD) {
-            this.game.updateMultiplayerHUD(this.myScore, this.opponentScore);
-        }
-    }
-
-    // Завершение игры
     endGame(message) {
         if (!this.gameActive) return;
         
+        console.log("Game ended:", message);
         this.gameActive = false;
         
         if (this.gameLoopInterval) {
@@ -283,23 +248,19 @@ export class MultiplayerGame {
             message: message
         });
         
-        // Показываем сообщение в игре
-        if (this.game.showMultiplayerMessage) {
-            this.game.showMultiplayerMessage(message);
-        }
-        
+        // Показываем сообщение
+        this.game.showMultiplayerMessage(message);
         playSound("die", this.game.soundEnabled);
     }
 
-    // Отрисовка мультиплеерной игры
     draw(ctx, tileSize) {
-        if (!this.gameActive && !this.food) return;
+        if (!this.food) return;
         
         // Рисуем еду
         ctx.fillStyle = "#ff4d4d";
         ctx.fillRect(this.food.x * tileSize, this.food.y * tileSize, tileSize - 1, tileSize - 1);
         
-        // Рисуем змейку игрока
+        // Рисуем змейку игрока (зелёная)
         for (let i = 0; i < this.mySnake.length; i++) {
             const seg = this.mySnake[i];
             ctx.fillStyle = i === 0 ? "#38ff38" : "#2d8a2d";
@@ -316,7 +277,7 @@ export class MultiplayerGame {
             }
         }
         
-        // Рисуем змейку оппонента
+        // Рисуем змейку оппонента (красная)
         for (let i = 0; i < this.opponentSnake.length; i++) {
             const seg = this.opponentSnake[i];
             ctx.fillStyle = i === 0 ? "#ff6b6b" : "#b30000";
@@ -334,7 +295,6 @@ export class MultiplayerGame {
         }
     }
 
-    // Очистка
     cleanup() {
         if (this.gameLoopInterval) {
             clearInterval(this.gameLoopInterval);
