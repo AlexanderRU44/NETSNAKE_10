@@ -23,6 +23,7 @@ export class MultiplayerGame {
         this.isHost = isHost;
         this.setupEventListeners();
         this.initGameState();
+        this.startGame();
     }
 
     setupEventListeners() {
@@ -43,8 +44,8 @@ export class MultiplayerGame {
         };
         
         this.peerManager.onConnectionOpen = (isHostFromServer) => {
-            console.log("onConnectionOpen CALLED! Starting game now!");
-            this.startGame();
+            console.log("onConnectionOpen CALLED!");
+            // Игра уже запущена через init, ничего не делаем
         };
         
         this.peerManager.onOpponentDisconnect = () => {
@@ -60,6 +61,7 @@ export class MultiplayerGame {
         this.tileCount = 20;
         
         if (this.isHost) {
+            // Хост - змейка слева, движется вправо
             this.mySnake = [
                 { x: 8, y: 10 },
                 { x: 7, y: 10 },
@@ -73,6 +75,7 @@ export class MultiplayerGame {
             this.myDirection = { dx: 1, dy: 0 };
             this.nextDirection = { dx: 1, dy: 0 };
         } else {
+            // Клиент - змейка справа, движется влево
             this.mySnake = [
                 { x: 12, y: 10 },
                 { x: 13, y: 10 },
@@ -91,6 +94,7 @@ export class MultiplayerGame {
         this.opponentScore = 0;
         this.generateFood();
         this.game.updateMultiplayerHUD(0, 0);
+        console.log("Initial snakes - my:", this.mySnake, "opponent:", this.opponentSnake);
     }
 
     generateFood() {
@@ -111,6 +115,7 @@ export class MultiplayerGame {
             
             if (!onSnake) {
                 this.food = food;
+                console.log("Food generated:", food);
                 return;
             }
         }
@@ -135,19 +140,23 @@ export class MultiplayerGame {
     update() {
         if (!this.gameActive) return;
         
+        // Применяем направление
         this.myDirection = { ...this.nextDirection };
         
+        // Движение змейки
         const head = this.mySnake[0];
         const newHead = {
             x: head.x + this.myDirection.dx,
             y: head.y + this.myDirection.dy
         };
         
+        // Телепортация через стены
         newHead.x = (newHead.x + this.tileCount) % this.tileCount;
         newHead.y = (newHead.y + this.tileCount) % this.tileCount;
         
         this.mySnake.unshift(newHead);
         
+        // Проверка еды
         const ateFood = (newHead.x === this.food.x && newHead.y === this.food.y);
         
         if (ateFood) {
@@ -155,27 +164,38 @@ export class MultiplayerGame {
             playSound("eat", this.game.soundEnabled);
             this.generateFood();
             this.game.updateMultiplayerHUD(this.myScore, this.opponentScore);
+            console.log("Ate food! Score:", this.myScore);
         } else {
             this.mySnake.pop();
         }
         
+        // Проверка столкновений
         if (this.checkCollisions()) {
-            this.endGame('You crashed!');
+            this.endGame('You crashed! You lose!');
             return;
         }
         
+        // Отправляем состояние оппоненту
         this.sendGameState();
     }
 
     checkCollisions() {
         const head = this.mySnake[0];
         
+        // Столкновение с собой
         for (let i = 1; i < this.mySnake.length; i++) {
-            if (head.x === this.mySnake[i].x && head.y === this.mySnake[i].y) return true;
+            if (head.x === this.mySnake[i].x && head.y === this.mySnake[i].y) {
+                console.log("Self collision");
+                return true;
+            }
         }
         
+        // Столкновение со змейкой оппонента
         for (const seg of this.opponentSnake) {
-            if (head.x === seg.x && head.y === seg.y) return true;
+            if (head.x === seg.x && head.y === seg.y) {
+                console.log("Opponent collision");
+                return true;
+            }
         }
         
         return false;
@@ -193,36 +213,78 @@ export class MultiplayerGame {
     }
 
     sendDirection(dx, dy) {
+        console.log("sendDirection:", dx, dy, "gameActive:", this.gameActive);
         if (!this.gameActive) return;
-        if ((dx === -this.myDirection.dx && dy === -this.myDirection.dy)) return;
+        
+        // Нельзя развернуться на 180 градусов
+        if ((dx === -this.myDirection.dx && dy === -this.myDirection.dy)) {
+            return;
+        }
+        
         this.nextDirection = { dx, dy };
+        console.log("New direction:", this.nextDirection);
     }
 
     endGame(message) {
         if (!this.gameActive) return;
+        
+        console.log("Game ended:", message);
         this.gameActive = false;
-        if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
-        this.peerManager.sendMessage({ type: 'gameEnd', message: message });
+        
+        if (this.gameLoopInterval) {
+            clearInterval(this.gameLoopInterval);
+            this.gameLoopInterval = null;
+        }
+        
+        this.peerManager.sendMessage({
+            type: 'gameEnd',
+            message: message
+        });
+        
         this.game.showMultiplayerMessage(message);
         playSound("die", this.game.soundEnabled);
     }
 
     draw(ctx, tileSize) {
-        if (!this.food) return;
+        if (!this.food) {
+            console.log("No food to draw");
+            return;
+        }
         
+        // Еда
         ctx.fillStyle = "#ff4d4d";
         ctx.fillRect(this.food.x * tileSize, this.food.y * tileSize, tileSize - 1, tileSize - 1);
         
+        // Своя змейка (зелёная)
         for (let i = 0; i < this.mySnake.length; i++) {
             const seg = this.mySnake[i];
             ctx.fillStyle = i === 0 ? "#38ff38" : "#2d8a2d";
             ctx.fillRect(seg.x * tileSize, seg.y * tileSize, tileSize - 1, tileSize - 1);
+            
+            if (i === 0) {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(seg.x * tileSize + 4, seg.y * tileSize + 4, 4, 4);
+                ctx.fillRect(seg.x * tileSize + 12, seg.y * tileSize + 4, 4, 4);
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(seg.x * tileSize + 5, seg.y * tileSize + 5, 2, 2);
+                ctx.fillRect(seg.x * tileSize + 13, seg.y * tileSize + 5, 2, 2);
+            }
         }
         
+        // Змейка оппонента (красная)
         for (let i = 0; i < this.opponentSnake.length; i++) {
             const seg = this.opponentSnake[i];
             ctx.fillStyle = i === 0 ? "#ff6b6b" : "#b30000";
             ctx.fillRect(seg.x * tileSize, seg.y * tileSize, tileSize - 1, tileSize - 1);
+            
+            if (i === 0) {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(seg.x * tileSize + 4, seg.y * tileSize + 4, 4, 4);
+                ctx.fillRect(seg.x * tileSize + 12, seg.y * tileSize + 4, 4, 4);
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(seg.x * tileSize + 5, seg.y * tileSize + 5, 2, 2);
+                ctx.fillRect(seg.x * tileSize + 13, seg.y * tileSize + 5, 2, 2);
+            }
         }
     }
 
