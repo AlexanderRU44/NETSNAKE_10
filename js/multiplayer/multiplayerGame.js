@@ -45,7 +45,6 @@ export class MultiplayerGame {
         
         this.peerManager.onConnectionOpen = (isHostFromServer) => {
             console.log("onConnectionOpen CALLED!");
-            // Игра уже запущена через init, ничего не делаем
         };
         
         this.peerManager.onOpponentDisconnect = () => {
@@ -95,6 +94,7 @@ export class MultiplayerGame {
         this.generateFood();
         this.game.updateMultiplayerHUD(0, 0);
         console.log("Initial snakes - my:", this.mySnake, "opponent:", this.opponentSnake);
+        console.log("Initial direction:", this.myDirection);
     }
 
     generateFood() {
@@ -213,16 +213,17 @@ export class MultiplayerGame {
     }
 
     sendDirection(dx, dy) {
-        console.log("sendDirection:", dx, dy, "gameActive:", this.gameActive);
+        console.log("sendDirection called:", dx, dy, "gameActive:", this.gameActive);
         if (!this.gameActive) return;
         
         // Нельзя развернуться на 180 градусов
         if ((dx === -this.myDirection.dx && dy === -this.myDirection.dy)) {
+            console.log("Reversed direction blocked");
             return;
         }
         
         this.nextDirection = { dx, dy };
-        console.log("New direction:", this.nextDirection);
+        console.log("New direction set:", this.nextDirection);
     }
 
     endGame(message) {
