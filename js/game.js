@@ -577,13 +577,11 @@ export class Game {
 
         this.renderer.clearCanvas();
         
-        // ========== МУЛЬТИПЛЕЕР ==========
-        // Проверяем мультиплеерный режим игры
+        // МУЛЬТИПЛЕЕРНЫЙ РЕЖИМ ИГРЫ
         if (this.isMultiplayerMode && this.multiplayerGame) {
             if (this.multiplayerGame.gameActive) {
                 this.multiplayerGame.draw(this.ctx, this.gridSize);
             } else {
-                // Если игра не активна, показываем сообщение
                 this.ctx.fillStyle = "rgba(0,0,0,0.8)";
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 this.ctx.fillStyle = "#ffffff";
@@ -591,12 +589,13 @@ export class Game {
                 this.ctx.textAlign = "center";
                 this.ctx.fillText("Waiting for opponent...", this.canvas.width / 2, this.canvas.height / 2);
             }
+            this.renderer.drawFloatingScores(this.floatingScores);
             this.particleSystem.update();
             this.particleSystem.draw(this.ctx);
             return;
         }
         
-        // Мультиплеерное меню (только фон, кнопки HTML)
+        // МУЛЬТИПЛЕЕРНОЕ МЕНЮ (фон, кнопки HTML)
         if (this.currentScreen === "MULTIPLAYER") {
             this.ctx.fillStyle = "rgba(0,0,0,0.85)";
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
