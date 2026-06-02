@@ -9,6 +9,8 @@ export class MultiplayerUI {
         this.status = "Choose action...";
         this.isHost = false;
         this.isConnecting = false;
+        this.touchStartX = 0;
+        this.touchStartY = 0;
     }
 
     // Создание UI
@@ -77,7 +79,7 @@ export class MultiplayerUI {
             ctx.font = "9px 'Press Start 2P'";
             ctx.fillText("CREATE", 130, 252);
             
-            // Поле для ввода кода (упрощённое)
+            // Поле для ввода кода
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 1;
             ctx.strokeRect(200, 230, 130, 35);
@@ -111,10 +113,37 @@ export class MultiplayerUI {
         ctx.fillStyle = "#ffffff";
         ctx.font = "8px 'Press Start 2P'";
         ctx.fillText("BACK", 200, 347);
+        
+        // Подсказка по сенсорному управлению
+        ctx.font = "6px 'Press Start 2P'";
+        ctx.fillStyle = "#8b949e";
+        ctx.fillText("TOUCH ANY BUTTON", 200, 370);
     }
 
-    // Обработка кликов по канвасу
-    handleClick(mouseX, mouseY) {
+    // Обработка сенсорных событий
+    handleTouchStart(x, y) {
+        this.touchStartX = x;
+        this.touchStartY = y;
+        return this.checkButtonClick(x, y);
+    }
+
+    handleTouchMove(x, y) {
+        // Для скролла внутри окна (опционально)
+        return false;
+    }
+
+    handleTouchEnd(x, y) {
+        // Проверяем, не слишком ли далеко ушел палец
+        const dx = Math.abs(x - this.touchStartX);
+        const dy = Math.abs(y - this.touchStartY);
+        if (dx < 20 && dy < 20) {
+            return this.checkButtonClick(x, y);
+        }
+        return false;
+    }
+
+    // Обработка кликов по кнопкам (общий метод)
+    checkButtonClick(x, y) {
         if (!this.isActive) return false;
         if (this.isConnecting) return false;
         
@@ -125,8 +154,8 @@ export class MultiplayerUI {
         const copyBtn = { x: 100, y: 280, w: 200, h: 35 };
         
         // Кнопка BACK
-        if (mouseX >= backBtn.x && mouseX <= backBtn.x + backBtn.w &&
-            mouseY >= backBtn.y && mouseY <= backBtn.y + backBtn.h) {
+        if (x >= backBtn.x && x <= backBtn.x + backBtn.w &&
+            y >= backBtn.y && y <= backBtn.y + backBtn.h) {
             this.close();
             this.game.currentScreen = "MAIN";
             return true;
@@ -135,8 +164,8 @@ export class MultiplayerUI {
         // Если есть код комнаты - режим ожидания
         if (this.roomCode && !this.isConnecting) {
             // Кнопка COPY
-            if (mouseX >= copyBtn.x && mouseX <= copyBtn.x + copyBtn.w &&
-                mouseY >= copyBtn.y && mouseY <= copyBtn.y + copyBtn.h) {
+            if (x >= copyBtn.x && x <= copyBtn.x + copyBtn.w &&
+                y >= copyBtn.y && y <= copyBtn.y + copyBtn.h) {
                 this.copyRoomCode();
                 return true;
             }
@@ -146,22 +175,22 @@ export class MultiplayerUI {
         // Режим выбора действия
         if (!this.roomCode) {
             // Кнопка CREATE
-            if (mouseX >= createBtn.x && mouseX <= createBtn.x + createBtn.w &&
-                mouseY >= createBtn.y && mouseY <= createBtn.y + createBtn.h) {
+            if (x >= createBtn.x && x <= createBtn.x + createBtn.w &&
+                y >= createBtn.y && y <= createBtn.y + createBtn.h) {
                 this.createRoom();
                 return true;
             }
             
             // Кнопка JOIN
-            if (mouseX >= joinBtn.x && mouseX <= joinBtn.x + joinBtn.w &&
-                mouseY >= joinBtn.y && mouseY <= joinBtn.y + joinBtn.h) {
+            if (x >= joinBtn.x && x <= joinBtn.x + joinBtn.w &&
+                y >= joinBtn.y && y <= joinBtn.y + joinBtn.h) {
                 this.showCodeInput();
                 return true;
             }
             
             // Клик по полю ввода кода
-            if (mouseX >= codeField.x && mouseX <= codeField.x + codeField.w &&
-                mouseY >= codeField.y && mouseY <= codeField.y + codeField.h) {
+            if (x >= codeField.x && x <= codeField.x + codeField.w &&
+                y >= codeField.y && y <= codeField.y + codeField.h) {
                 this.showCodeInput();
                 return true;
             }
