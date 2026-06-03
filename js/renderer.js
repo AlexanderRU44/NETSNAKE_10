@@ -184,12 +184,14 @@ export class Renderer {
         
         for (let i = 0; i < opponentSnake.length; i++) {
             const part = opponentSnake[i];
+            if (!part || part.x === undefined || part.y === undefined) continue;
+            
             const x = part.x * cellSize;
             const y = part.y * cellSize;
             const rx = Math.round(x);
             const ry = Math.round(y);
             
-            ctx.fillStyle = this.isDarkTheme ? "#ff6b6b" : "#d63031";
+            ctx.fillStyle = this.isDarkTheme ? "#ff5555" : "#cc0000";
             ctx.beginPath();
             ctx.roundRect(rx + 1, ry + 1, 18, 18, 4);
             ctx.fill();
@@ -197,17 +199,17 @@ export class Renderer {
             if (i === 0) {
                 ctx.fillStyle = "#ffffff";
                 ctx.beginPath();
-                ctx.arc(rx + 7, ry + 7, 2.5, 0, Math.PI * 2);
+                ctx.arc(rx + 6, ry + 7, 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(rx + 13, ry + 7, 2.5, 0, Math.PI * 2);
+                ctx.arc(rx + 14, ry + 7, 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = "#000000";
                 ctx.beginPath();
-                ctx.arc(rx + 7, ry + 7, 1.2, 0, Math.PI * 2);
+                ctx.arc(rx + 6, ry + 7, 1.2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(rx + 13, ry + 7, 1.2, 0, Math.PI * 2);
+                ctx.arc(rx + 14, ry + 7, 1.2, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
