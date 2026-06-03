@@ -45,7 +45,7 @@ export class Game {
         this.globalTopTen = [];
         this.isLoadingLeaderboard = false;
 
-        this.snake = [{ x: 10, y: 10 }];
+        this.snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
         this.aiOpponent = null;
         this.aiOpponentScore = 0;
         this.food = { x: 5, y: 5 };
@@ -150,7 +150,6 @@ export class Game {
         this.opponentReady = false;
         this.multiplayerMenuSelection = 0;
         this.multiplayerResult = null;
-        this.joinRoomInput = "";
 
         this.aboutLogic.loadAboutText();
         this.loadBestSingleScore = () => this.leaderboard.loadBestSingleScore();
@@ -257,7 +256,6 @@ export class Game {
             this.victoryFlag = false;
         }
         
-        // Для мультиплеера отправляем результат
         if (this.isMultiplayer && this.multiplayerManager) {
             const winner = this.score > this.opponentScore ? 
                 (this.multiplayerLocalNumber === 1 ? 'player1' : 'player2') :
@@ -266,7 +264,13 @@ export class Game {
             this.multiplayerManager.sendGameOver(winner);
         }
         
-        this.currentScreen = "MAIN";
+        if (!this.isMultiplayer) {
+            this.currentScreen = "MAIN";
+        } else {
+            this.currentScreen = "MULTIPLAYER_RESULT";
+            this.multiplayerResult = (this.score > this.opponentScore) ? 'win' : 'lose';
+        }
+        
         this.mainMenuSelection = 0;
         this.mainMenuScrollY = 0;
         this.timeModeActive = false;
@@ -293,7 +297,7 @@ export class Game {
         this.isTurboActive = false;
         this.turboRemainingTime = 0;
         this.bonusTimer = 0;
-        this.snake = [{ x: 10, y: 10 }];
+        this.snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
         this.ghostTrails = [];
         this.floatingScores = [];
         this.movingObstacleTick = 0;
@@ -354,7 +358,12 @@ export class Game {
         this.isTurboActive = false;
         this.turboRemainingTime = 0;
         this.bonusTimer = 0;
-        this.snake = [{ x: 10, y: 10 }];
+        
+        this.snake = [
+            { x: 10, y: 10 },
+            { x: 9, y: 10 },
+            { x: 8, y: 10 }
+        ];
         this.opponentSnake = [];
         this.ghostTrails = [];
         this.floatingScores = [];
@@ -372,19 +381,31 @@ export class Game {
         this.victoryFlag = false;
         this.shieldActive = false;
         
-        this.generateFood();
+        let validPosition = false;
+        let attempts = 0;
+        while (!validPosition && attempts < 100) {
+            const x = Math.floor(Math.random() * this.tileCount);
+            const y = Math.floor(Math.random() * this.tileCount);
+            let occupied = this.snake.some(seg => seg.x === x && seg.y === y);
+            if (!occupied) {
+                this.food = { x, y };
+                validPosition = true;
+            }
+            attempts++;
+        }
+        
         this.updateHUD();
         this.updateTicker();
     }
 
     updateOpponent(state) {
-        if (state.snake) {
+        if (state.snake && Array.isArray(state.snake) && state.snake.length > 0) {
             this.opponentSnake = state.snake;
         }
         if (state.score !== undefined) {
             this.opponentScore = state.score;
         }
-        if (state.gameOver && !this.gameOver) {
+        if (state.alive === false && !this.gameOver) {
             this.endGame();
         }
         this.updateHUD();
@@ -418,23 +439,14 @@ export class Game {
         this.updateHUD();
     }
 
-    showJoinRoomInput() {
-        const code = prompt(this.i18n[this.currentLang].enterRoomCode || "ENTER ROOM CODE:");
-        if (code && code.trim()) {
-            this.joinRoom(code.trim().toUpperCase());
-        }
-    }
-
-    async joinRoom(roomId) {
-        if (this.multiplayerManager) {
-            const result = await this.multiplayerManager.joinRoom(roomId, this.playerName);
-            if (result.success) {
-                this.currentScreen = "WAITING_MP";
-                this.updateMiniDisplay();
-            } else {
-                alert("Failed to join: " + result.error);
-            }
-        }
+    async sendMultiplayerState() {
+        if (!this.isMultiplayer || !this.multiplayerManager || this.gameOver) return;
+        
+        await this.multiplayerManager.sendGameState({
+            snake: this.snake,
+            score: this.score,
+            alive: !this.gameOver
+        });
     }
 
     handleMenuPress() {
@@ -449,7 +461,7 @@ export class Game {
                 }
                 this.isMultiplayer = false;
             }
-            if (this.currentScreen !== "WAITING_MP") {
+            if (this.currentScreen !== "WAITING_MP" && this.currentScreen !== "GAME_MP") {
                 this.currentScreen = "MAIN";
             }
         }
@@ -461,7 +473,7 @@ export class Game {
             if (["SETTINGS", "LEADERBOARD", "TASKS", "ACHIEVEMENTS", "MODES", "ABOUT", "MODE_INFO", "MULTIPLAYER_MENU"].includes(this.currentScreen)) {
                 this.currentScreen = "MAIN";
             }
-            if (this.currentScreen === "WAITING_MP" && this.multiplayerManager) {
+            if ((this.currentScreen === "WAITING_MP" || this.currentScreen === "GAME_MP") && this.multiplayerManager) {
                 this.multiplayerManager.leaveRoom();
                 this.isMultiplayer = false;
                 this.currentScreen = "MAIN";
@@ -475,18 +487,39 @@ export class Game {
 
     handleInput(act) {
         if (this.currentScreen === "EDIT_NAME" || this.currentScreen === "INTRO") return;
+        
+        // Мультиплеерное управление
+        if (this.isMultiplayer && !this.isPaused && !this.gameOver && this.currentScreen === "GAME_MP") {
+            if (act === "UP" && this.dy === 0) {
+                this.nextDx = 0; this.nextDy = -1;
+                this.isTurningThisTick = true;
+            } else if (act === "DOWN" && this.dy === 0) {
+                this.nextDx = 0; this.nextDy = 1;
+                this.isTurningThisTick = true;
+            } else if (act === "LEFT" && this.dx === 0) {
+                this.nextDx = -1; this.nextDy = 0;
+                this.isTurningThisTick = true;
+            } else if (act === "RIGHT" && this.dx === 0) {
+                this.nextDx = 1; this.nextDy = 0;
+                this.isTurningThisTick = true;
+            }
+            return;
+        }
+        
         if (this.currentScreen === "MULTIPLAYER_MENU") {
             const max = 2;
             if (act === "UP") this.multiplayerMenuSelection = (this.multiplayerMenuSelection <= 0) ? max : this.multiplayerMenuSelection - 1;
             if (act === "DOWN") this.multiplayerMenuSelection = (this.multiplayerMenuSelection >= max) ? 0 : this.multiplayerMenuSelection + 1;
             return;
         }
+        
         if (this.currentScreen === "WAITING_MP") {
-            if (act === "CENTER") {
+            if (act === "CENTER" && this.multiplayerManager) {
                 this.multiplayerManager.sendReady();
             }
             return;
         }
+        
         if (this.currentScreen === "MULTIPLAYER_RESULT") {
             if (act === "CENTER" || act === "MENU") {
                 if (this.multiplayerManager) {
@@ -497,8 +530,9 @@ export class Game {
             }
             return;
         }
+        
         initAudio();
-        if (!this.isPaused && !this.isMultiplayer) {
+        if (!this.isPaused) {
             this.cheatSequence.push(act);
             if (this.cheatSequence.length > 3) this.cheatSequence.shift();
             if (this.aiMode || this.isTurningThisTick) return;
@@ -566,16 +600,6 @@ export class Game {
                 if (act === "DOWN") this.achScrollY = Math.min(this.maxAchScrollY, this.achScrollY + 20);
             }
         }
-    }
-
-    async sendMultiplayerState() {
-        if (!this.isMultiplayer || !this.multiplayerManager || this.gameOver) return;
-        
-        await this.multiplayerManager.sendGameState({
-            snake: this.snake,
-            score: this.score,
-            alive: !this.gameOver
-        });
     }
 
     gameLoop() {
@@ -716,27 +740,47 @@ export class Game {
                     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 }
             }
-        } else {
+        } else if (this.isMultiplayer && this.currentScreen === "GAME_MP") {
             // Мультиплеерный геймплей
-            if (!this.gameOver) {
+            if (!this.gameOver && !this.isPaused) {
                 this.dx = this.nextDx;
                 this.dy = this.nextDy;
                 this.isTurningThisTick = false;
                 
-                this.moveSnake();
-                this.checkCollision();
+                let head = { x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy };
                 
-                // Отправляем состояние оппоненту
+                head.x = (head.x + this.tileCount) % this.tileCount;
+                head.y = (head.y + this.tileCount) % this.tileCount;
+                
+                this.snake.unshift(head);
+                
+                if (head.x === this.food.x && head.y === this.food.y) {
+                    playSound("eat", this.soundEnabled);
+                    this.score++;
+                    this.updateHUD();
+                    this.generateFood();
+                    this.particleSystem.addExplosion(head.x, head.y, "#ff4d4d", 6);
+                    addFloatingScore(this.floatingScores, head.x, head.y, "+1", this.currentLang);
+                } else {
+                    this.snake.pop();
+                }
+                
+                for (let i = 1; i < this.snake.length; i++) {
+                    if (this.snake[i].x === head.x && this.snake[i].y === head.y) {
+                        this.endGame();
+                        break;
+                    }
+                }
+                
                 this.sendMultiplayerState();
-                
-                this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
-                this.renderer.drawGift(this.gift, this.flashToggle);
-                this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
-                this.renderer.drawOpponentSnake(this.opponentSnake);
-                this.renderer.drawFloatingScores(this.floatingScores);
-                this.particleSystem.update();
-                this.particleSystem.draw(this.ctx);
             }
+            
+            this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
+            this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
+            this.renderer.drawOpponentSnake(this.opponentSnake);
+            this.renderer.drawFloatingScores(this.floatingScores);
+            this.particleSystem.update();
+            this.particleSystem.draw(this.ctx);
         }
     }
 
