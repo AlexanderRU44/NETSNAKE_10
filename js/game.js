@@ -400,7 +400,7 @@ export class Game {
 
     updateOpponent(state) {
         if (state.snake && Array.isArray(state.snake) && state.snake.length > 0) {
-            this.opponentSnake = state.snake;
+            this.opponentSnake = JSON.parse(JSON.stringify(state.snake));
         }
         if (state.score !== undefined) {
             this.opponentScore = state.score;
@@ -743,17 +743,24 @@ export class Game {
         } else if (this.isMultiplayer && this.currentScreen === "GAME_MP") {
             // Мультиплеерный геймплей
             if (!this.gameOver && !this.isPaused) {
+                // Сохраняем старое направление для проверки
+                const oldDx = this.dx;
+                const oldDy = this.dy;
+                
                 this.dx = this.nextDx;
                 this.dy = this.nextDy;
                 this.isTurningThisTick = false;
                 
+                // Двигаем голову
                 let head = { x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy };
                 
+                // Телепортация через стены
                 head.x = (head.x + this.tileCount) % this.tileCount;
                 head.y = (head.y + this.tileCount) % this.tileCount;
                 
                 this.snake.unshift(head);
                 
+                // Проверяем еду
                 if (head.x === this.food.x && head.y === this.food.y) {
                     playSound("eat", this.soundEnabled);
                     this.score++;
@@ -765,6 +772,7 @@ export class Game {
                     this.snake.pop();
                 }
                 
+                // Проверка столкновения с собой
                 for (let i = 1; i < this.snake.length; i++) {
                     if (this.snake[i].x === head.x && this.snake[i].y === head.y) {
                         this.endGame();
@@ -772,9 +780,11 @@ export class Game {
                     }
                 }
                 
+                // Отправляем состояние оппоненту
                 this.sendMultiplayerState();
             }
             
+            // Отрисовка
             this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
             this.renderer.drawOpponentSnake(this.opponentSnake);
