@@ -1,5 +1,4 @@
-import { db, collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, onSnapshot, doc } from './firebase-config.js';
-import { playSound } from './utils.js';
+import { db, collection, addDoc, query, where, getDocs, updateDoc, onSnapshot, doc } from './firebase-config.js';
 
 export class MultiplayerManager {
     constructor(game) {
@@ -25,13 +24,10 @@ export class MultiplayerManager {
 
     async createRoom(playerName) {
         try {
-            console.log("Creating room for player:", playerName);
-            
             this.playerId = this.generatePlayerId();
             this.isHost = true;
             
             const roomId = this.generateRoomId();
-            console.log("Generated room ID:", roomId);
             
             const room = {
                 roomId: roomId,
@@ -51,9 +47,7 @@ export class MultiplayerManager {
                 updatedAt: new Date()
             };
             
-            console.log("Saving room to Firebase...");
             const docRef = await addDoc(collection(db, "multiplayer_rooms"), room);
-            console.log("Room created successfully, doc ID:", docRef.id);
             
             this.roomId = roomId;
             this.roomDocRef = docRef;
@@ -66,16 +60,12 @@ export class MultiplayerManager {
             return { success: true, roomId: this.roomId };
         } catch (error) {
             console.error("Error creating room:", error);
-            console.error("Error code:", error.code);
-            console.error("Error message:", error.message);
             return { success: false, error: error.message };
         }
     }
 
     async joinRoom(roomId, playerName) {
         try {
-            console.log("Joining room:", roomId, "as player:", playerName);
-            
             this.playerId = this.generatePlayerId();
             this.roomId = roomId;
             
@@ -83,13 +73,11 @@ export class MultiplayerManager {
             const querySnapshot = await getDocs(q);
             
             if (querySnapshot.empty) {
-                console.error("Room not found:", roomId);
                 return { success: false, error: "Room not found" };
             }
             
             const roomDoc = querySnapshot.docs[0];
             const roomData = roomDoc.data();
-            console.log("Found room:", roomData);
             
             if (roomData.status !== 'waiting') {
                 return { success: false, error: "Game already started" };
@@ -119,7 +107,6 @@ export class MultiplayerManager {
             this.isHost = false;
             this.listenToRoom();
             
-            console.log("Successfully joined room");
             return { success: true };
         } catch (error) {
             console.error("Error joining room:", error);
@@ -128,20 +115,12 @@ export class MultiplayerManager {
     }
 
     listenToRoom() {
-        if (this.roomListener) {
-            console.log("Already listening to room");
-            return;
-        }
-        
-        console.log("Starting to listen to room:", this.roomId);
+        if (this.roomListener) return;
         
         const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", this.roomId));
         
         this.roomListener = onSnapshot(q, (snapshot) => {
-            console.log("Room snapshot received, size:", snapshot.size);
-            
             if (snapshot.empty) {
-                console.log("Room closed or deleted");
                 this.handleRoomClosed();
                 return;
             }
@@ -150,46 +129,30 @@ export class MultiplayerManager {
             const roomData = roomDoc.data();
             this.roomDocRef = roomDoc.ref;
             
-            console.log("Room data:", roomData);
-            console.log("My player ID:", this.playerId);
-            
             if (roomData.player1 && roomData.player1.id === this.playerId) {
                 this.localPlayerNumber = 1;
                 this.opponentId = roomData.player2?.id || null;
                 this.opponentData = roomData.player2;
-                console.log("I am player 1, opponent:", this.opponentData);
             } else if (roomData.player2 && roomData.player2.id === this.playerId) {
                 this.localPlayerNumber = 2;
                 this.opponentId = roomData.player1.id;
                 this.opponentData = roomData.player1;
-                console.log("I am player 2, opponent:", this.opponentData);
-            } else {
-                console.log("Could not identify my player number");
             }
             
             if (roomData.status === 'playing' && this.game.currentScreen !== 'GAME_MP') {
-                console.log("Game is starting!");
                 this.startMultiplayerGame(roomData);
             } else if (roomData.status === 'finished') {
-                console.log("Game finished");
                 this.handleGameFinished(roomData);
             }
             
             if (this.game.onOpponentReady && this.opponentData) {
                 this.game.onOpponentReady(this.opponentData.ready);
             }
-        }, (error) => {
-            console.error("Error in room listener:", error);
         });
     }
 
     async sendReady() {
-        if (!this.roomDocRef) {
-            console.error("No room document reference");
-            return;
-        }
-        
-        console.log("Sending ready status as player", this.localPlayerNumber);
+        if (!this.roomDocRef) return;
         
         const updateData = this.localPlayerNumber === 1 
             ? { 'player1.ready': true, updatedAt: new Date() }
@@ -197,19 +160,16 @@ export class MultiplayerManager {
         
         await updateDoc(this.roomDocRef, updateData);
         
-        // Проверяем, готовы ли оба
         const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", this.roomId));
         const querySnapshot = await getDocs(q);
         const roomData = querySnapshot.docs[0].data();
         
         if (roomData.player1?.ready && roomData.player2?.ready && roomData.status === 'waiting') {
-            console.log("Both players ready, starting game!");
             await updateDoc(this.roomDocRef, { status: 'playing' });
         }
     }
 
     startMultiplayerGame(roomData) {
-        console.log("Starting multiplayer game");
         this.game.currentScreen = 'GAME_MP';
         this.game.isMultiplayer = true;
         this.game.multiplayerLocalNumber = this.localPlayerNumber;
@@ -219,8 +179,6 @@ export class MultiplayerManager {
 
     listenToGameState() {
         if (this.gameStateListener) return;
-        
-        console.log("Listening to game states");
         
         const q = query(collection(db, "multiplayer_game_states"), where("roomId", "==", this.roomId));
         
@@ -233,13 +191,12 @@ export class MultiplayerManager {
                     }
                 }
             });
-        }, (error) => {
-            console.error("Error in game state listener:", error);
         });
     }
 
     async sendGameState(gameState) {
         if (!this.roomId || !this.playerId) return;
+        if (!gameState.snake || gameState.snake.length === 0) return;
         
         try {
             const q = query(
@@ -253,7 +210,7 @@ export class MultiplayerManager {
                 roomId: this.roomId,
                 playerId: this.playerId,
                 playerNumber: this.localPlayerNumber,
-                snake: gameState.snake,
+                snake: gameState.snake.map(seg => ({ x: seg.x, y: seg.y })),
                 score: gameState.score,
                 alive: gameState.alive,
                 timestamp: Date.now()
@@ -276,14 +233,6 @@ export class MultiplayerManager {
             winner: winner,
             finishedAt: new Date()
         });
-    }
-
-    handleGameOver(winner) {
-        const isWinner = (winner === 'player1' && this.localPlayerNumber === 1) ||
-                        (winner === 'player2' && this.localPlayerNumber === 2);
-        if (this.game.onMultiplayerGameOver) {
-            this.game.onMultiplayerGameOver(isWinner);
-        }
     }
 
     handleGameFinished(roomData) {
