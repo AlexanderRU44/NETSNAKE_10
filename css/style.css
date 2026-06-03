@@ -191,51 +191,20 @@ canvas {
 
 /* ОВЕРЛЕЙ ИМЕНИ */
 .name-input-overlay {
-    position: absolute; 
-    top: 25%; 
-    left: 20px; 
-    right: 20px;
-    background: #2b3a4a; 
-    padding: 15px; 
-    border: 3px solid #ffffff;
-    display: none; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 12px; 
-    z-index: 10;
+    position: absolute; top: 25%; left: 20px; right: 20px;
+    background: #2b3a4a; padding: 15px; border: 3px solid #ffffff;
+    display: none; flex-direction: column; align-items: center; gap: 12px; z-index: 10;
 }
-
-.name-input-overlay label { 
-    color: #ffffff; 
-    font-size: 11px; 
-    text-align: center; 
-    line-height: 1.4; 
-}
-
+.name-input-overlay label { color: #ffffff; font-size: 11px; text-align: center; line-height: 1.4; }
 .name-input-overlay input {
-    background: #ffffff; 
-    color: #2b3a4a; 
-    border: none; 
-    padding: 8px;
-    font-family: inherit; 
-    font-size: 14px; 
-    text-align: center; 
-    width: 100%;
-    outline: none; 
-    text-transform: uppercase;
-    -webkit-user-select: text; 
-    user-select: text; 
+    background: #ffffff; color: #2b3a4a; border: none; padding: 8px;
+    font-family: inherit; font-size: 14px; text-align: center; width: 100%;
+    outline: none; text-transform: uppercase;
+    -webkit-user-select: text; user-select: text; 
 }
-
 .name-input-overlay button {
-    background: #ffffff; 
-    color: #2b3a4a; 
-    border: none; 
-    padding: 8px 15px;
-    font-family: inherit; 
-    font-size: 10px; 
-    cursor: pointer; 
-    width: 100%;
+    background: #ffffff; color: #2b3a4a; border: none; padding: 8px 15px;
+    font-family: inherit; font-size: 10px; cursor: pointer; width: 100%;
 }
 
 /* ОВЕРЛЕЙ МУЛЬТИПЛЕЕРА */
@@ -252,10 +221,6 @@ canvas {
     z-index: 100;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     display: none;
-}
-
-.join-overlay-content {
-    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 15px;
@@ -267,6 +232,7 @@ canvas {
     text-align: center;
     font-family: 'Press Start 2P', monospace;
     line-height: 1.4;
+    width: 100%;
 }
 
 .join-overlay input {
@@ -281,12 +247,7 @@ canvas {
     outline: none;
     border-radius: 6px;
     letter-spacing: 2px;
-}
-
-.join-buttons {
-    display: flex;
-    gap: 10px;
-    width: 100%;
+    box-sizing: border-box;
 }
 
 .join-overlay button {
@@ -295,15 +256,40 @@ canvas {
     border: none;
     padding: 8px 15px;
     font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
+    font-size: 10px;
     cursor: pointer;
     border-radius: 6px;
-    flex: 1;
+    width: 100%;
     transition: all 0.05s ease;
 }
 
 .join-overlay button:active {
     transform: translateY(2px);
+}
+
+/* Тёмная тема для оверлея мультиплеера */
+body.dark-theme .join-overlay {
+    background: #0d1117;
+    border-color: #58a6ff;
+}
+
+body.dark-theme .join-overlay label {
+    color: #8b949e;
+}
+
+body.dark-theme .join-overlay input {
+    background: #161b22;
+    color: #58a6ff;
+    border: 1px solid #30363d;
+}
+
+body.dark-theme .join-overlay button {
+    background: #21262d;
+    color: #c9d1d9;
+}
+
+body.dark-theme .join-overlay button:active {
+    background: #30363d;
 }
 
 /* ===== LIGHT THEME ===== */
@@ -329,21 +315,6 @@ body.light-theme .timer-bar-container { background: #f7f9fa; border: 2px solid #
 body.light-theme .timer-bar { background: #2b3a4a; }
 body.light-theme .btn-dir { background: #b0b7c0; border: 3px solid #8e96a0; color: #ffffff; box-shadow: 0 4px #9aa1a9, inset 0 2px rgba(255,255,255,0.4); }
 body.light-theme .btn-dir:active { box-shadow: 0 1px #9aa1a9; }
-body.light-theme .join-overlay {
-    background: #2b3a4a;
-    border-color: #ccd1d9;
-}
-body.light-theme .join-overlay label {
-    color: #ffffff;
-}
-body.light-theme .join-overlay input {
-    background: #f7f9fa;
-    color: #2b3a4a;
-}
-body.light-theme .join-overlay button {
-    background: #ccd1d9;
-    color: #2b3a4a;
-}
 
 /* ===== DARK THEME ===== */
 body.dark-theme { background-color: #1a1c1e; color: #eee; }
@@ -368,25 +339,6 @@ body.dark-theme .timer-bar-container { background: #0f141c; border: 2px solid #3
 body.dark-theme .timer-bar { background: #58a6ff; }
 body.dark-theme .btn-dir { background: #3a3d42; border: 3px solid #282a2d; color: #eeeeee; box-shadow: 0 4px #1c1d1f, inset 0 2px rgba(255,255,255,0.05); }
 body.dark-theme .btn-dir:active { box-shadow: 0 1px #1c1d1f; }
-body.dark-theme .join-overlay {
-    background: #0d1117;
-    border-color: #58a6ff;
-}
-body.dark-theme .join-overlay label {
-    color: #8b949e;
-}
-body.dark-theme .join-overlay input {
-    background: #161b22;
-    color: #58a6ff;
-    border: 1px solid #30363d;
-}
-body.dark-theme .join-overlay button {
-    background: #21262d;
-    color: #c9d1d9;
-}
-body.dark-theme .join-overlay button:active {
-    background: #30363d;
-}
 
 /* УСИЛЕНИЕ РЯБИ ДЛЯ ТЁМНОЙ ТЕМЫ */
 body.dark-theme .next-food-panel::before {
@@ -406,7 +358,7 @@ body.dark-theme .next-food-label {
     animation: textGlitchDark 0.3s infinite alternate;
 }
 
-/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА (обёртка) */
+/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА */
 .mini-canvas-glitch {
     position: relative;
 }
@@ -539,9 +491,8 @@ body.dark-theme .next-food-label {
     .btn-dir, .btn-center { height: 48px; font-size: 1rem; }
     .btn-side { height: 36px; font-size: 0.55rem; }
     .join-overlay { width: 260px; padding: 15px; }
-    .join-overlay label { font-size: 9px; }
     .join-overlay input { font-size: 12px; padding: 8px; }
-    .join-overlay button { font-size: 8px; padding: 6px 10px; }
+    .join-overlay button { font-size: 9px; }
 }
 
 @media screen and (max-height: 650px) {
@@ -556,4 +507,5 @@ body.dark-theme .next-food-label {
     .btn-side { height: 32px; font-size: 0.5rem; }
     .dpad-container { gap: 4px; margin-bottom: 5px; }
     .phone-wrapper { padding: 8px; gap: 6px; }
+    .join-overlay { padding: 12px; gap: 10px; }
 }
