@@ -1,10 +1,10 @@
-// multiplayer.js - Локальный мультиплеер через BroadcastChannel
 export class MultiplayerManager {
     constructor(game) {
         this.game = game;
         this.roomId = null;
         this.playerId = null;
         this.isHost = false;
+        this.localPlayerNumber = 1;
         this.channel = null;
         this.opponentData = null;
         this.sendInterval = null;
@@ -24,27 +24,25 @@ export class MultiplayerManager {
             this.playerId = this.generatePlayerId();
             this.roomId = this.generateRoomId();
             this.isHost = true;
+            this.localPlayerNumber = 1;
             
-            // Создаём канал для этой комнаты
             this.channel = new BroadcastChannel(`netsnake_${this.roomId}`);
-            
             this.setupChannelListeners();
             
-            // Отправляем сообщение о создании комнаты
             this.sendMessage({
                 type: 'host_ready',
                 playerId: this.playerId,
                 playerName: playerName,
-                roomId: this.roomId
+                roomId: this.roomId,
+                playerNumber: 1
             });
             
             localStorage.setItem('mp_room_id', this.roomId);
             localStorage.setItem('mp_player_id', this.playerId);
             
-            // Запускаем пинг для поддержания связи
             this.startHeartbeat();
             
-            console.log("Room created:", this.roomId);
+            console.log("Room created as Player 1, ID:", this.roomId);
             return { success: true, roomId: this.roomId };
         } catch (error) {
             console.error("Error creating room:", error);
@@ -57,24 +55,23 @@ export class MultiplayerManager {
             this.playerId = this.generatePlayerId();
             this.roomId = roomId.toUpperCase();
             this.isHost = false;
+            this.localPlayerNumber = 2;
             
-            // Создаём канал для этой комнаты
             this.channel = new BroadcastChannel(`netsnake_${this.roomId}`);
-            
             this.setupChannelListeners();
             
-            // Отправляем запрос на подключение
             this.sendMessage({
                 type: 'join_request',
                 playerId: this.playerId,
                 playerName: playerName,
-                roomId: this.roomId
+                roomId: this.roomId,
+                playerNumber: 2
             });
             
             localStorage.setItem('mp_room_id', this.roomId);
             localStorage.setItem('mp_player_id', this.playerId);
             
-            console.log("Join requested for room:", this.roomId);
+            console.log("Join requested for room:", this.roomId, "as Player 2");
             return { success: true };
         } catch (error) {
             console.error("Error joining room:", error);
@@ -85,51 +82,53 @@ export class MultiplayerManager {
     setupChannelListeners() {
         this.channel.onmessage = (event) => {
             const data = event.data;
-            console.log("Received:", data.type);
+            console.log("Received:", data.type, data);
             
             switch (data.type) {
                 case 'host_ready':
                     if (!this.isHost && this.roomId === data.roomId) {
-                        // Мы присоединяемся к хосту
                         this.sendMessage({
                             type: 'join_confirm',
                             playerId: this.playerId,
                             playerName: this.game.playerName,
-                            targetHostId: data.playerId
+                            targetHostId: data.playerId,
+                            playerNumber: 2
                         });
                     }
                     break;
                     
                 case 'join_confirm':
                     if (this.isHost && data.targetHostId === this.playerId) {
-                        // Хост подтверждает подключение
                         this.opponentData = {
                             playerId: data.playerId,
                             playerName: data.playerName,
+                            playerNumber: data.playerNumber,
                             ready: false
                         };
                         this.game.onOpponentReady(false);
                         this.sendMessage({
                             type: 'connection_established',
                             playerId: this.playerId,
-                            opponentId: data.playerId
+                            opponentId: data.playerId,
+                            playerNumber: 1
                         });
                     }
                     break;
                     
                 case 'connection_established':
                     if (data.opponentId === this.playerId) {
-                        console.log("Connection established!");
+                        console.log("Connection established! I am Player", this.localPlayerNumber);
                         this.game.onOpponentReady(false);
                     }
                     break;
                     
                 case 'player_ready':
                     if (data.playerId !== this.playerId) {
-                        this.opponentData = { ...this.opponentData, ready: true };
+                        if (this.opponentData) {
+                            this.opponentData.ready = true;
+                        }
                         this.game.onOpponentReady(true);
                         
-                        // Если оба готовы, запускаем игру
                         if (this.ready) {
                             this.sendMessage({
                                 type: 'start_game',
@@ -141,11 +140,7 @@ export class MultiplayerManager {
                     
                 case 'start_game':
                     if (data.playerId !== this.playerId) {
-                        this.game.currentScreen = 'GAME_MP';
-                        this.game.isMultiplayer = true;
-                        this.game.multiplayerLocalNumber = this.isHost ? 1 : 2;
-                        this.game.resetMultiplayer();
-                        this.startStateSender();
+                        this.startMultiplayerGame();
                     }
                     break;
                     
@@ -182,24 +177,27 @@ export class MultiplayerManager {
             ready: true
         });
         
-        // Если оппонент уже готов, запускаем игру
         if (this.opponentData?.ready) {
             this.sendMessage({
                 type: 'start_game',
                 playerId: this.playerId
             });
-            this.game.currentScreen = 'GAME_MP';
-            this.game.isMultiplayer = true;
-            this.game.multiplayerLocalNumber = this.isHost ? 1 : 2;
-            this.game.resetMultiplayer();
-            this.startStateSender();
+            this.startMultiplayerGame();
         }
+    }
+
+    startMultiplayerGame() {
+        console.log("Starting multiplayer game as Player", this.localPlayerNumber);
+        this.game.currentScreen = 'GAME_MP';
+        this.game.isMultiplayer = true;
+        this.game.multiplayerLocalNumber = this.localPlayerNumber;
+        this.game.resetMultiplayer();
+        this.startStateSender();
     }
 
     startStateSender() {
         if (this.sendInterval) clearInterval(this.sendInterval);
         
-        // Отправляем состояние каждые 50мс
         this.sendInterval = setInterval(() => {
             if (this.game.isMultiplayer && !this.game.gameOver && this.game.currentScreen === 'GAME_MP') {
                 this.sendMessage({
