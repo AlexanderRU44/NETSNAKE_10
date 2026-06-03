@@ -50,17 +50,17 @@ body {
     margin: 0;
     font-size: 0.85rem;
     text-align: left;
-    white-space: nowrap;
+    white-space: nowrap;   /* запрет переноса строки */
 }
 
-/* ПАНЕЛЬ СЛЕДУЮЩАЯ ЕДА С РЯБЬЮ */
+/* ПАНЕЛЬ СЛЕДУЮЩАЯ ЕДА С РЯБЬЮ (уменьшена) */
 .next-food-panel {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 4px;              /* было 8px */
     border-radius: 12px;
-    padding: 4px 8px;
+    padding: 4px 8px;      /* было 5px 12px */
     overflow: hidden;
 }
 
@@ -99,15 +99,15 @@ body {
 .next-food-label {
     position: relative;
     z-index: 6;
-    font-size: 0.45rem;
+    font-size: 0.45rem;    /* было 0.5rem */
     letter-spacing: 1px;
     animation: textGlitch 0.3s infinite alternate;
 }
 
 #miniCanvas {
     display: block;
-    width: 28px;
-    height: 28px;
+    width: 28px;            /* было 36px */
+    height: 28px;           /* было 36px */
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
@@ -358,7 +358,7 @@ body.dark-theme .next-food-label {
     animation: textGlitchDark 0.3s infinite alternate;
 }
 
-/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА */
+/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА (обёртка) */
 .mini-canvas-glitch {
     position: relative;
 }
@@ -428,6 +428,21 @@ body.dark-theme .next-food-label {
     animation: screenFlicker 0.2s steps(2) infinite;
 }
 
+/* АДАПТИВ ДЛЯ ОВЕРЛЕЯ МУЛЬТИПЛЕЕРА */
+@media screen and (max-width: 360px) {
+    .join-overlay {
+        width: 260px;
+        padding: 15px;
+    }
+    .join-overlay input {
+        font-size: 12px;
+        padding: 8px;
+    }
+    .join-overlay button {
+        font-size: 9px;
+    }
+}
+
 /* АНИМАЦИИ */
 @keyframes scanlines {
     0% { transform: translateY(0); }
@@ -490,9 +505,6 @@ body.dark-theme .next-food-label {
     .dpad-container { gap: 5px; margin-bottom: 8px; }
     .btn-dir, .btn-center { height: 48px; font-size: 1rem; }
     .btn-side { height: 36px; font-size: 0.55rem; }
-    .join-overlay { width: 260px; padding: 15px; }
-    .join-overlay input { font-size: 12px; padding: 8px; }
-    .join-overlay button { font-size: 9px; }
 }
 
 @media screen and (max-height: 650px) {
@@ -507,5 +519,4 @@ body.dark-theme .next-food-label {
     .btn-side { height: 32px; font-size: 0.5rem; }
     .dpad-container { gap: 4px; margin-bottom: 5px; }
     .phone-wrapper { padding: 8px; gap: 6px; }
-    .join-overlay { padding: 12px; gap: 10px; }
 }
