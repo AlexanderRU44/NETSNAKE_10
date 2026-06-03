@@ -112,6 +112,8 @@ export class Renderer {
     }
 
     drawSnake(snake, rainbowHue, shieldActive = false) {
+        if (!snake || snake.length === 0) return;
+        
         const ctx = this.ctx;
         const activeColor = this.snakeColors[this.getCurrentSnakeColorIdx()];
         const isRainbow = activeColor.hex === "RAINBOW";
@@ -124,6 +126,8 @@ export class Renderer {
         
         for (let i = 0; i < snake.length; i++) {
             const part = snake[i];
+            if (!part || part.x === undefined || part.y === undefined) continue;
+            
             const x = part.x * cellSize;
             const y = part.y * cellSize;
             const rx = Math.round(x);
@@ -191,6 +195,7 @@ export class Renderer {
             const rx = Math.round(x);
             const ry = Math.round(y);
             
+            // Красная змейка оппонента
             ctx.fillStyle = this.isDarkTheme ? "#ff5555" : "#cc0000";
             ctx.beginPath();
             ctx.roundRect(rx + 1, ry + 1, 18, 18, 4);
@@ -259,6 +264,7 @@ export class Renderer {
     }
 
     drawFood(food, foodType, flashToggle) {
+        if (!food) return;
         if (foodType !== "REGULAR" && !flashToggle) return;
 
         const ctx = this.ctx;
