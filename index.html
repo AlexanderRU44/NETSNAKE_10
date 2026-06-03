@@ -1,91 +1,64 @@
-/* Стили для оверлея подключения к мультиплееру */
-.join-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 280px;
-    background: #2b3a4a;
-    border: 3px solid #ffffff;
-    border-radius: 12px;
-    padding: 20px;
-    z-index: 100;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NetSnake 10</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="light-theme">
 
-.join-overlay-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
+    <div class="phone-wrapper">
+        <div class="top-panel">
+            <h1>NETSNAKE 10</h1>
+            <div class="next-food-panel">
+                <span class="next-food-label" id="nextFoodLabel">NEXT FOOD</span>
+                <canvas id="miniCanvas" width="36" height="36"></canvas>
+            </div>
+        </div>
 
-.join-overlay label {
-    color: #ffffff;
-    font-size: 11px;
-    text-align: center;
-    font-family: 'Press Start 2P', monospace;
-    line-height: 1.4;
-}
+        <div class="screen">
+            <div class="hud" id="hud">
+                <span id="score">СЧЕТ:0</span>
+                <span id="hi-score">РЕКОРД:...</span>
+            </div>
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            
+            <div class="name-input-overlay" id="nameOverlay">
+                <label id="overlayLabel"></label>
+                <input type="text" id="nameInput" maxlength="8" autofocus autocomplete="off">
+                <button id="btnSaveName"></button>
+            </div>
 
-.join-overlay input {
-    background: #ffffff;
-    color: #2b3a4a;
-    border: none;
-    padding: 10px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    text-align: center;
-    width: 100%;
-    outline: none;
-    border-radius: 6px;
-    letter-spacing: 2px;
-}
+            <!-- ИСПРАВЛЕННЫЙ ОВЕРЛЕЙ МУЛЬТИПЛЕЕРА -->
+            <div class="join-overlay" id="joinOverlay">
+                <label id="joinLabel">ENTER ROOM CODE</label>
+                <input type="text" id="roomCodeInput" maxlength="20" autocomplete="off">
+                <button id="btnJoinRoom">JOIN</button>
+                <button id="btnCancelJoin">CANCEL</button>
+            </div>
 
-.join-buttons {
-    display: flex;
-    gap: 10px;
-    width: 100%;
-}
+            <div class="timer-bar-container" id="timer-container">
+                <div class="timer-bar" id="timer-bar"></div>
+            </div>
+        </div>
 
-.join-overlay button {
-    background: #ffffff;
-    color: #2b3a4a;
-    border: none;
-    padding: 8px 15px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    cursor: pointer;
-    border-radius: 6px;
-    flex: 1;
-    transition: all 0.05s ease;
-}
+        <div class="dpad-container">
+            <button class="btn btn-side" id="btn-menu">MENU</button>
+            <button class="btn btn-dir" id="btn-up">▲</button>
+            <button class="btn btn-side" id="btn-back">BACK</button>
+            
+            <button class="btn btn-dir" id="btn-left">◀</button>
+            <button class="btn btn-center" id="btn-space">OK</button>
+            <button class="btn btn-dir" id="btn-right">▶</button>
+            
+            <button class="btn btn-dir" id="btn-down">▼</button>
+        </div>
+    </div>
 
-.join-overlay button:active {
-    transform: translateY(2px);
-}
-
-/* Тёмная тема для оверлея */
-body.dark-theme .join-overlay {
-    background: #0d1117;
-    border-color: #58a6ff;
-}
-
-body.dark-theme .join-overlay label {
-    color: #8b949e;
-}
-
-body.dark-theme .join-overlay input {
-    background: #161b22;
-    color: #58a6ff;
-    border: 1px solid #30363d;
-}
-
-body.dark-theme .join-overlay button {
-    background: #21262d;
-    color: #c9d1d9;
-}
-
-body.dark-theme .join-overlay button:active {
-    background: #30363d;
-}
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
