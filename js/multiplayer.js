@@ -1,19 +1,14 @@
-import { db, collection, addDoc, query, where, getDocs, updateDoc, onSnapshot, doc } from './firebase-config.js';
-
+// multiplayer.js - Локальный мультиплеер через BroadcastChannel
 export class MultiplayerManager {
     constructor(game) {
         this.game = game;
         this.roomId = null;
         this.playerId = null;
-        this.opponentId = null;
         this.isHost = false;
-        this.roomListener = null;
-        this.gameStateListener = null;
-        this.roomDocRef = null;
+        this.channel = null;
         this.opponentData = null;
-        this.localPlayerNumber = 1;
-        this.lastSentState = null;
         this.sendInterval = null;
+        this.ready = false;
     }
 
     generateRoomId() {
@@ -21,45 +16,35 @@ export class MultiplayerManager {
     }
 
     generatePlayerId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
     }
 
     async createRoom(playerName) {
         try {
             this.playerId = this.generatePlayerId();
+            this.roomId = this.generateRoomId();
             this.isHost = true;
             
-            const roomId = this.generateRoomId();
+            // Создаём канал для этой комнаты
+            this.channel = new BroadcastChannel(`netsnake_${this.roomId}`);
             
-            const room = {
-                roomId: roomId,
-                hostId: this.playerId,
-                player1: {
-                    id: this.playerId,
-                    name: playerName,
-                    ready: false,
-                    snake: null,
-                    score: 0,
-                    connected: true,
-                    joinedAt: new Date()
-                },
-                player2: null,
-                status: 'waiting',
-                createdAt: new Date(),
-                updatedAt: new Date()
-            };
+            this.setupChannelListeners();
             
-            const docRef = await addDoc(collection(db, "multiplayer_rooms"), room);
-            
-            this.roomId = roomId;
-            this.roomDocRef = docRef;
+            // Отправляем сообщение о создании комнаты
+            this.sendMessage({
+                type: 'host_ready',
+                playerId: this.playerId,
+                playerName: playerName,
+                roomId: this.roomId
+            });
             
             localStorage.setItem('mp_room_id', this.roomId);
             localStorage.setItem('mp_player_id', this.playerId);
             
-            this.listenToRoom();
-            this.startStateSender();
+            // Запускаем пинг для поддержания связи
+            this.startHeartbeat();
             
+            console.log("Room created:", this.roomId);
             return { success: true, roomId: this.roomId };
         } catch (error) {
             console.error("Error creating room:", error);
@@ -70,47 +55,26 @@ export class MultiplayerManager {
     async joinRoom(roomId, playerName) {
         try {
             this.playerId = this.generatePlayerId();
-            this.roomId = roomId;
+            this.roomId = roomId.toUpperCase();
+            this.isHost = false;
             
-            const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", roomId));
-            const querySnapshot = await getDocs(q);
+            // Создаём канал для этой комнаты
+            this.channel = new BroadcastChannel(`netsnake_${this.roomId}`);
             
-            if (querySnapshot.empty) {
-                return { success: false, error: "Room not found" };
-            }
+            this.setupChannelListeners();
             
-            const roomDoc = querySnapshot.docs[0];
-            const roomData = roomDoc.data();
-            
-            if (roomData.status !== 'waiting') {
-                return { success: false, error: "Game already started" };
-            }
-            
-            if (roomData.player2 !== null) {
-                return { success: false, error: "Room is full" };
-            }
-            
-            await updateDoc(doc(db, "multiplayer_rooms", roomDoc.id), {
-                player2: {
-                    id: this.playerId,
-                    name: playerName,
-                    ready: false,
-                    snake: null,
-                    score: 0,
-                    connected: true,
-                    joinedAt: new Date()
-                },
-                updatedAt: new Date()
+            // Отправляем запрос на подключение
+            this.sendMessage({
+                type: 'join_request',
+                playerId: this.playerId,
+                playerName: playerName,
+                roomId: this.roomId
             });
             
-            this.roomDocRef = roomDoc.ref;
             localStorage.setItem('mp_room_id', this.roomId);
             localStorage.setItem('mp_player_id', this.playerId);
             
-            this.isHost = false;
-            this.listenToRoom();
-            this.startStateSender();
-            
+            console.log("Join requested for room:", this.roomId);
             return { success: true };
         } catch (error) {
             console.error("Error joining room:", error);
@@ -118,171 +82,158 @@ export class MultiplayerManager {
         }
     }
 
+    setupChannelListeners() {
+        this.channel.onmessage = (event) => {
+            const data = event.data;
+            console.log("Received:", data.type);
+            
+            switch (data.type) {
+                case 'host_ready':
+                    if (!this.isHost && this.roomId === data.roomId) {
+                        // Мы присоединяемся к хосту
+                        this.sendMessage({
+                            type: 'join_confirm',
+                            playerId: this.playerId,
+                            playerName: this.game.playerName,
+                            targetHostId: data.playerId
+                        });
+                    }
+                    break;
+                    
+                case 'join_confirm':
+                    if (this.isHost && data.targetHostId === this.playerId) {
+                        // Хост подтверждает подключение
+                        this.opponentData = {
+                            playerId: data.playerId,
+                            playerName: data.playerName,
+                            ready: false
+                        };
+                        this.game.onOpponentReady(false);
+                        this.sendMessage({
+                            type: 'connection_established',
+                            playerId: this.playerId,
+                            opponentId: data.playerId
+                        });
+                    }
+                    break;
+                    
+                case 'connection_established':
+                    if (data.opponentId === this.playerId) {
+                        console.log("Connection established!");
+                        this.game.onOpponentReady(false);
+                    }
+                    break;
+                    
+                case 'player_ready':
+                    if (data.playerId !== this.playerId) {
+                        this.opponentData = { ...this.opponentData, ready: true };
+                        this.game.onOpponentReady(true);
+                        
+                        // Если оба готовы, запускаем игру
+                        if (this.ready) {
+                            this.sendMessage({
+                                type: 'start_game',
+                                playerId: this.playerId
+                            });
+                        }
+                    }
+                    break;
+                    
+                case 'start_game':
+                    if (data.playerId !== this.playerId) {
+                        this.game.currentScreen = 'GAME_MP';
+                        this.game.isMultiplayer = true;
+                        this.game.multiplayerLocalNumber = this.isHost ? 1 : 2;
+                        this.game.resetMultiplayer();
+                        this.startStateSender();
+                    }
+                    break;
+                    
+                case 'game_state':
+                    if (data.playerId !== this.playerId && data.gameState) {
+                        this.game.updateOpponent(data.gameState);
+                    }
+                    break;
+                    
+                case 'game_over':
+                    if (data.playerId !== this.playerId) {
+                        this.game.onMultiplayerFinished(data.winner);
+                    }
+                    break;
+                    
+                case 'player_left':
+                    this.handleRoomClosed();
+                    break;
+            }
+        };
+    }
+
+    sendMessage(data) {
+        if (this.channel) {
+            this.channel.postMessage(data);
+        }
+    }
+
+    async sendReady() {
+        this.ready = true;
+        this.sendMessage({
+            type: 'player_ready',
+            playerId: this.playerId,
+            ready: true
+        });
+        
+        // Если оппонент уже готов, запускаем игру
+        if (this.opponentData?.ready) {
+            this.sendMessage({
+                type: 'start_game',
+                playerId: this.playerId
+            });
+            this.game.currentScreen = 'GAME_MP';
+            this.game.isMultiplayer = true;
+            this.game.multiplayerLocalNumber = this.isHost ? 1 : 2;
+            this.game.resetMultiplayer();
+            this.startStateSender();
+        }
+    }
+
     startStateSender() {
         if (this.sendInterval) clearInterval(this.sendInterval);
         
-        // Отправляем состояние каждые 50мс для плавного движения
+        // Отправляем состояние каждые 50мс
         this.sendInterval = setInterval(() => {
             if (this.game.isMultiplayer && !this.game.gameOver && this.game.currentScreen === 'GAME_MP') {
-                this.sendGameState({
-                    snake: this.game.snake,
-                    score: this.game.score,
-                    alive: !this.game.gameOver
+                this.sendMessage({
+                    type: 'game_state',
+                    playerId: this.playerId,
+                    gameState: {
+                        snake: this.game.snake,
+                        score: this.game.score,
+                        alive: !this.game.gameOver
+                    }
                 });
             }
         }, 50);
     }
 
-    listenToRoom() {
-        if (this.roomListener) return;
-        
-        const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", this.roomId));
-        
-        this.roomListener = onSnapshot(q, (snapshot) => {
-            if (snapshot.empty) {
-                this.handleRoomClosed();
-                return;
+    startHeartbeat() {
+        setInterval(() => {
+            if (this.channel) {
+                this.sendMessage({
+                    type: 'heartbeat',
+                    playerId: this.playerId,
+                    timestamp: Date.now()
+                });
             }
-            
-            const roomDoc = snapshot.docs[0];
-            const roomData = roomDoc.data();
-            this.roomDocRef = roomDoc.ref;
-            
-            // Определяем номер игрока
-            if (roomData.player1 && roomData.player1.id === this.playerId) {
-                this.localPlayerNumber = 1;
-                this.opponentId = roomData.player2?.id || null;
-                this.opponentData = roomData.player2;
-                console.log("I am player 1");
-            } else if (roomData.player2 && roomData.player2.id === this.playerId) {
-                this.localPlayerNumber = 2;
-                this.opponentId = roomData.player1.id;
-                this.opponentData = roomData.player1;
-                console.log("I am player 2");
-            }
-            
-            // Обновляем статус готовности оппонента
-            if (this.game.onOpponentReady && this.opponentData) {
-                this.game.onOpponentReady(this.opponentData.ready);
-            }
-            
-            // Запускаем игру если оба готовы
-            if (roomData.status === 'playing' && this.game.currentScreen !== 'GAME_MP') {
-                console.log("Starting game! Both players ready");
-                this.startMultiplayerGame();
-            } else if (roomData.status === 'finished') {
-                this.handleGameFinished(roomData);
-            }
-        });
-    }
-
-    async sendReady() {
-        if (!this.roomDocRef) return;
-        
-        console.log("Sending ready as player", this.localPlayerNumber);
-        
-        const updateData = this.localPlayerNumber === 1 
-            ? { 'player1.ready': true, updatedAt: new Date() }
-            : { 'player2.ready': true, updatedAt: new Date() };
-        
-        await updateDoc(this.roomDocRef, updateData);
-        
-        // Проверяем готовность обоих
-        const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", this.roomId));
-        const querySnapshot = await getDocs(q);
-        const roomData = querySnapshot.docs[0].data();
-        
-        console.log("Player1 ready:", roomData.player1?.ready, "Player2 ready:", roomData.player2?.ready);
-        
-        if (roomData.player1?.ready && roomData.player2?.ready && roomData.status === 'waiting') {
-            console.log("Both ready! Starting game...");
-            await updateDoc(this.roomDocRef, { status: 'playing' });
-        }
-    }
-
-    startMultiplayerGame() {
-        this.game.currentScreen = 'GAME_MP';
-        this.game.isMultiplayer = true;
-        this.game.multiplayerLocalNumber = this.localPlayerNumber;
-        this.game.resetMultiplayer();
-        this.listenToGameState();
-    }
-
-    listenToGameState() {
-        if (this.gameStateListener) return;
-        
-        console.log("Listening to game states for room:", this.roomId);
-        
-        const q = query(collection(db, "multiplayer_game_states"), where("roomId", "==", this.roomId));
-        
-        this.gameStateListener = onSnapshot(q, (snapshot) => {
-            snapshot.forEach((doc) => {
-                const state = doc.data();
-                // Обновляем данные оппонента (не свои)
-                if (state.playerId !== this.playerId) {
-                    console.log("Received opponent state:", state);
-                    if (this.game.updateOpponent) {
-                        this.game.updateOpponent(state);
-                    }
-                }
-            });
-        });
-    }
-
-    async sendGameState(gameState) {
-        if (!this.roomId || !this.playerId) return;
-        if (!gameState.snake || gameState.snake.length === 0) return;
-        
-        // Не отправляем одно и то же состояние много раз
-        const stateKey = JSON.stringify({
-            snake: gameState.snake.map(s => `${s.x},${s.y}`).join(';'),
-            score: gameState.score
-        });
-        
-        if (this.lastSentState === stateKey) return;
-        this.lastSentState = stateKey;
-        
-        try {
-            const q = query(
-                collection(db, "multiplayer_game_states"),
-                where("roomId", "==", this.roomId),
-                where("playerId", "==", this.playerId)
-            );
-            
-            const querySnapshot = await getDocs(q);
-            const stateData = {
-                roomId: this.roomId,
-                playerId: this.playerId,
-                playerNumber: this.localPlayerNumber,
-                snake: gameState.snake.map(seg => ({ x: seg.x, y: seg.y })),
-                score: gameState.score,
-                alive: gameState.alive,
-                timestamp: Date.now()
-            };
-            
-            if (querySnapshot.empty) {
-                await addDoc(collection(db, "multiplayer_game_states"), stateData);
-            } else {
-                await updateDoc(querySnapshot.docs[0].ref, stateData);
-            }
-        } catch (error) {
-            console.error("Error sending game state:", error);
-        }
+        }, 5000);
     }
 
     async sendGameOver(winner) {
-        if (!this.roomDocRef) return;
-        await updateDoc(this.roomDocRef, {
-            status: 'finished',
-            winner: winner,
-            finishedAt: new Date()
+        this.sendMessage({
+            type: 'game_over',
+            playerId: this.playerId,
+            winner: winner
         });
-    }
-
-    handleGameFinished(roomData) {
-        if (this.game.onMultiplayerFinished) {
-            this.game.onMultiplayerFinished(roomData.winner);
-        }
+        this.cleanup();
     }
 
     handleRoomClosed() {
@@ -292,17 +243,11 @@ export class MultiplayerManager {
         this.cleanup();
     }
 
-    async leaveRoom() {
-        if (this.sendInterval) {
-            clearInterval(this.sendInterval);
-            this.sendInterval = null;
-        }
-        
-        if (this.roomDocRef) {
-            await updateDoc(this.roomDocRef, {
-                [`player${this.localPlayerNumber}.connected`]: false
-            });
-        }
+    leaveRoom() {
+        this.sendMessage({
+            type: 'player_left',
+            playerId: this.playerId
+        });
         this.cleanup();
     }
 
@@ -311,13 +256,9 @@ export class MultiplayerManager {
             clearInterval(this.sendInterval);
             this.sendInterval = null;
         }
-        if (this.roomListener) {
-            this.roomListener();
-            this.roomListener = null;
-        }
-        if (this.gameStateListener) {
-            this.gameStateListener();
-            this.gameStateListener = null;
+        if (this.channel) {
+            this.channel.close();
+            this.channel = null;
         }
         
         localStorage.removeItem('mp_room_id');
@@ -325,8 +266,7 @@ export class MultiplayerManager {
         
         this.roomId = null;
         this.playerId = null;
-        this.opponentId = null;
-        this.roomDocRef = null;
-        this.lastSentState = null;
+        this.opponentData = null;
+        this.ready = false;
     }
 }
