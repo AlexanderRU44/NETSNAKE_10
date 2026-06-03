@@ -10,6 +10,7 @@ export class GameStateHandler {
 
     async handleCenter() {
         initAudio();
+        
         if (this.game.currentScreen === "INTRO") {
             if (this.game.introScreen.isReady()) {
                 this.game.currentScreen = "MAIN";
@@ -18,24 +19,29 @@ export class GameStateHandler {
             }
             return;
         }
+        
         if (this.game.currentScreen === "EDIT_NAME") {
             this.game.saveNameInput();
             return;
         }
+        
         if (this.game.currentScreen === "ABOUT" && this.game.currentGithubUrl) {
             window.open(this.game.currentGithubUrl, '_blank');
             return;
         }
+        
         if (this.game.currentScreen === "MULTIPLAYER_MENU") {
             await this.handleMultiplayerMenu();
             return;
         }
+        
         if (this.game.currentScreen === "WAITING_MP") {
             if (this.game.multiplayerManager) {
                 this.game.multiplayerManager.sendReady();
             }
             return;
         }
+        
         if (this.game.currentScreen === "MULTIPLAYER_RESULT") {
             if (this.game.multiplayerManager) {
                 this.game.multiplayerManager.cleanup();
@@ -45,6 +51,17 @@ export class GameStateHandler {
             this.game.updateMiniDisplay();
             return;
         }
+        
+        if (this.game.currentScreen === "GAME_MP") {
+            if (this.game.isPaused) {
+                this.game.isPaused = false;
+                this.game.lastTimeUpdate = Date.now();
+            } else {
+                this.game.isPaused = true;
+            }
+            return;
+        }
+        
         if (!this.game.isPaused && !this.game.gameOver && 
             this.game.cheatSequence.length === 3 && 
             this.game.cheatSequence.every((val, i) => val === this.game.targetCheat[i])) {
@@ -109,7 +126,6 @@ export class GameStateHandler {
         const t = this.game.i18n[this.game.currentLang];
         
         if (this.game.multiplayerMenuSelection === 0) {
-            // Создать комнату
             const result = await this.game.multiplayerManager.createRoom(this.game.playerName);
             if (result.success) {
                 this.game.currentScreen = "WAITING_MP";
@@ -118,8 +134,7 @@ export class GameStateHandler {
                 alert("Failed to create room: " + result.error);
             }
         } else if (this.game.multiplayerMenuSelection === 1) {
-            // Присоединиться - показать prompt для ввода кода
-            const code = prompt(t.enterRoomCode);
+            const code = prompt(t.enterRoomCode || "ENTER ROOM CODE:");
             if (code && code.trim()) {
                 const result = await this.game.multiplayerManager.joinRoom(code.trim().toUpperCase(), this.game.playerName);
                 if (result.success) {
