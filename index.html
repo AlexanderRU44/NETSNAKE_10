@@ -7,9 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="light-theme">
 
     <div class="phone-wrapper">
         <div class="top-panel">
@@ -33,15 +33,11 @@
                 <button id="btnSaveName"></button>
             </div>
 
-            <div class="join-overlay" id="joinOverlay">
-                <div class="join-overlay-content">
-                    <label id="joinLabel">ВВЕДИТЕ КОД КОМНАТЫ</label>
-                    <input type="text" id="roomCodeInput" maxlength="20" autocomplete="off" placeholder="XXXXXX">
-                    <div class="join-buttons">
-                        <button id="btnJoinRoom">ПОДКЛЮЧИТЬСЯ</button>
-                        <button id="btnCancelJoin">ОТМЕНА</button>
-                    </div>
-                </div>
+            <div class="join-overlay" id="joinOverlay" style="display: none; position: absolute; top: 25%; left: 20px; right: 20px; background: #2b3a4a; padding: 15px; border: 3px solid #ffffff; flex-direction: column; align-items: center; gap: 12px; z-index: 10;">
+                <label id="joinLabel" style="color: #ffffff; font-size: 11px; text-align: center;">ENTER ROOM CODE</label>
+                <input type="text" id="roomCodeInput" maxlength="20" autocomplete="off" style="background: #ffffff; color: #2b3a4a; border: none; padding: 8px; font-family: inherit; font-size: 14px; text-align: center; width: 100%; outline: none;">
+                <button id="btnJoinRoom" style="background: #ffffff; color: #2b3a4a; border: none; padding: 8px 15px; font-family: inherit; font-size: 10px; cursor: pointer;">JOIN</button>
+                <button id="btnCancelJoin" style="background: #ffffff; color: #2b3a4a; border: none; padding: 8px 15px; font-family: inherit; font-size: 10px; cursor: pointer;">CANCEL</button>
             </div>
 
             <div class="timer-bar-container" id="timer-container">
@@ -62,6 +58,6 @@
         </div>
     </div>
 
-    <script type="module" src="main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
