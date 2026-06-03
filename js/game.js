@@ -48,7 +48,7 @@ export class Game {
         this.snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
         this.aiOpponent = null;
         this.aiOpponentScore = 0;
-        this.food = { x: 5, y: 5 };
+        this.food = { x: 15, y: 10 };
         this.gift = null;
         this.foodType = "REGULAR";
         this.flashToggle = true;
@@ -154,6 +154,7 @@ export class Game {
         this.opponentTargetSnake = [];
         this.opponentMoveInterp = 0;
         this.lastOpponentUpdate = 0;
+        this.lastFrameTime = 0;
 
         this.aboutLogic.loadAboutText();
         this.loadBestSingleScore = () => this.leaderboard.loadBestSingleScore();
@@ -241,7 +242,22 @@ export class Game {
     }
 
     generateFood() {
-        this.foodLogic.generateFood();
+        if (this.isMultiplayer) {
+            // В мультиплеере генерируем еду в случайном месте, не занятом змейками
+            let maxAttempts = 100;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const x = Math.floor(Math.random() * this.tileCount);
+                const y = Math.floor(Math.random() * this.tileCount);
+                let occupied = this.snake.some(seg => seg.x === x && seg.y === y);
+                occupied = occupied || this.opponentSnake.some(seg => seg.x === x && seg.y === y);
+                if (!occupied) {
+                    this.food = { x, y };
+                    return;
+                }
+            }
+        } else {
+            this.foodLogic.generateFood();
+        }
     }
 
     checkCollision() {
@@ -363,16 +379,21 @@ export class Game {
         this.turboRemainingTime = 0;
         this.bonusTimer = 0;
         
+        // Стартовая позиция игрока (слева)
         this.snake = [
-            { x: 10, y: 10 },
-            { x: 9, y: 10 },
-            { x: 8, y: 10 }
+            { x: 5, y: 10 },
+            { x: 4, y: 10 },
+            { x: 3, y: 10 }
         ];
+        
+        // Сброс оппонента
         this.opponentSnake = [];
         this.opponentTargetSnake = [];
         this.opponentMoveInterp = 0;
         this.lastOpponentUpdate = 0;
         this.opponentScore = 0;
+        this.opponentReady = false;
+        
         this.ghostTrails = [];
         this.floatingScores = [];
         this.dx = 1;
@@ -388,6 +409,7 @@ export class Game {
         this.victoryFlag = false;
         this.shieldActive = false;
         
+        // Генерация еды
         let validPosition = false;
         let attempts = 0;
         while (!validPosition && attempts < 100) {
@@ -406,13 +428,13 @@ export class Game {
     }
 
     updateOpponent(state) {
+        // Получаем данные оппонента
         if (state.snake && Array.isArray(state.snake) && state.snake.length > 0) {
             // Сохраняем текущую позицию как начальную для интерполяции
             if (this.opponentSnake.length === 0) {
                 this.opponentSnake = JSON.parse(JSON.stringify(state.snake));
                 this.opponentTargetSnake = JSON.parse(JSON.stringify(state.snake));
             } else {
-                // Сохраняем текущую позицию перед обновлением цели
                 this.opponentSnake = JSON.parse(JSON.stringify(this.opponentSnake));
                 this.opponentTargetSnake = JSON.parse(JSON.stringify(state.snake));
                 this.opponentMoveInterp = 0;
@@ -426,10 +448,19 @@ export class Game {
         if (state.alive === false && !this.gameOver) {
             this.endGame();
         }
+        
+        // Отладочный вывод
+        console.log("Opponent update:", { 
+            snakeLength: state.snake?.length, 
+            score: state.score, 
+            alive: state.alive 
+        });
     }
 
     updateOpponentMovement() {
-        if (!this.isMultiplayer || this.opponentTargetSnake.length === 0) return;
+        if (!this.isMultiplayer || this.opponentTargetSnake.length === 0) {
+            return;
+        }
         
         const now = performance.now();
         if (this.lastOpponentUpdate === 0) {
@@ -437,15 +468,15 @@ export class Game {
             return;
         }
         
-        // Интерполяция за 100мс (плавное движение)
+        // Интерполяция за 100мс
         const interpDuration = 100;
-        const delta = Math.min(1, (now - this.lastOpponentUpdate) / interpDuration);
+        let delta = (now - this.lastOpponentUpdate) / interpDuration;
         
         if (delta >= 1) {
             // Достигли цели
             this.opponentSnake = JSON.parse(JSON.stringify(this.opponentTargetSnake));
-        } else {
-            // Интерполяция позиций сегментов
+        } else if (delta > 0) {
+            // Плавная интерполяция
             const newSnake = [];
             const maxLen = Math.max(this.opponentSnake.length, this.opponentTargetSnake.length);
             
@@ -470,6 +501,7 @@ export class Game {
 
     onOpponentReady(ready) {
         this.opponentReady = ready;
+        console.log("Opponent ready changed:", ready);
     }
 
     onMultiplayerGameOver(isWinner) {
@@ -499,11 +531,13 @@ export class Game {
     async sendMultiplayerState() {
         if (!this.isMultiplayer || !this.multiplayerManager || this.gameOver) return;
         
-        await this.multiplayerManager.sendGameState({
+        const state = {
             snake: this.snake,
             score: this.score,
             alive: !this.gameOver
-        });
+        };
+        
+        await this.multiplayerManager.sendGameState(state);
     }
 
     handleMenuPress() {
@@ -830,7 +864,18 @@ export class Game {
                 
                 // Проверка столкновения с собой
                 for (let i = 1; i < this.snake.length; i++) {
-                    if (this.snake[i].x === head.x && this.snake[i].y === head.y) {
+                    if (Math.floor(this.snake[i].x) === Math.floor(head.x) && 
+                        Math.floor(this.snake[i].y) === Math.floor(head.y)) {
+                        this.endGame();
+                        break;
+                    }
+                }
+                
+                // Проверка столкновения с оппонентом
+                for (let i = 0; i < this.opponentSnake.length; i++) {
+                    const seg = this.opponentSnake[i];
+                    if (Math.floor(seg.x) === Math.floor(head.x) && 
+                        Math.floor(seg.y) === Math.floor(head.y)) {
                         this.endGame();
                         break;
                     }
@@ -847,6 +892,12 @@ export class Game {
             this.renderer.drawFloatingScores(this.floatingScores);
             this.particleSystem.update();
             this.particleSystem.draw(this.ctx);
+            
+            // Отображаем счёт на экране
+            this.ctx.fillStyle = this.isDarkTheme ? "#ffffff" : "#2b3a4a";
+            this.ctx.font = "12px 'Press Start 2P'";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText(`${this.score} : ${this.opponentScore}`, 200, 30);
         }
     }
 
