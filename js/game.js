@@ -213,10 +213,8 @@ export class Game {
         
         // Мультиплеер - отдельное отображение
         if (this.isMultiplayer) {
-            const modeTag = ` [MP] ${this.score}:${this.opponentScore}`;
-            this.scoreElement.innerText = `${t.score}:${this.score}${modeTag}`;
-            // В мультиплеере не показываем рекорд
-            this.hiScoreElement.innerText = `${t.hi}: ---`;
+            this.scoreElement.innerText = `${this.score}:${this.opponentScore}`;
+            this.hiScoreElement.innerText = `MP BATTLE`;
             return;
         }
         
@@ -256,14 +254,19 @@ export class Game {
                 if (this.opponentSnake && this.opponentSnake.length > 0) {
                     occupied = occupied || this.opponentSnake.some(seg => Math.floor(seg.x) === x && Math.floor(seg.y) === y);
                 }
-                if (!occupied) {
+                const tooCloseToPlayer = Math.abs(x - this.snake[0].x) + Math.abs(y - this.snake[0].y) < 3;
+                const tooCloseToOpponent = this.opponentSnake.length > 0 && 
+                    Math.abs(x - Math.floor(this.opponentSnake[0].x)) + Math.abs(y - Math.floor(this.opponentSnake[0].y)) < 3;
+                
+                if (!occupied && !tooCloseToPlayer && !tooCloseToOpponent) {
                     this.food = { x, y };
                     return;
                 }
             }
-        } else {
-            this.foodLogic.generateFood();
+            this.food = { x: 10, y: 10 };
+            return;
         }
+        this.foodLogic.generateFood();
     }
 
     checkCollision() {
@@ -385,14 +388,29 @@ export class Game {
         this.turboRemainingTime = 0;
         this.bonusTimer = 0;
         
-        // Стартовая позиция игрока
-        this.snake = [
-            { x: 5, y: 10 },
-            { x: 4, y: 10 },
-            { x: 3, y: 10 }
-        ];
+        // РАЗНЫЕ СТАРТОВЫЕ ПОЗИЦИИ для разных игроков
+        if (this.multiplayerLocalNumber === 1) {
+            this.snake = [
+                { x: 5, y: 10 },
+                { x: 4, y: 10 },
+                { x: 3, y: 10 }
+            ];
+            this.dx = 1;
+            this.dy = 0;
+            this.nextDx = 1;
+            this.nextDy = 0;
+        } else {
+            this.snake = [
+                { x: 14, y: 10 },
+                { x: 15, y: 10 },
+                { x: 16, y: 10 }
+            ];
+            this.dx = -1;
+            this.dy = 0;
+            this.nextDx = -1;
+            this.nextDy = 0;
+        }
         
-        // Сброс оппонента
         this.opponentSnake = [];
         this.opponentTargetSnake = [];
         this.lastOpponentUpdate = 0;
@@ -401,10 +419,6 @@ export class Game {
         
         this.ghostTrails = [];
         this.floatingScores = [];
-        this.dx = 1;
-        this.dy = 0;
-        this.nextDx = 1;
-        this.nextDy = 0;
         this.score = 0;
         this.gameOver = false;
         this.isPaused = false;
@@ -414,7 +428,6 @@ export class Game {
         this.victoryFlag = false;
         this.shieldActive = false;
         
-        // Генерация еды
         this.generateFood();
         
         this.updateHUD();
@@ -553,7 +566,6 @@ export class Game {
     handleInput(act) {
         if (this.currentScreen === "EDIT_NAME" || this.currentScreen === "INTRO") return;
         
-        // Мультиплеерное управление
         if (this.isMultiplayer && !this.isPaused && !this.gameOver && this.currentScreen === "GAME_MP") {
             if (act === "UP" && this.dy === 0) {
                 this.nextDx = 0; this.nextDy = -1;
@@ -806,25 +818,20 @@ export class Game {
                 }
             }
         } else if (this.isMultiplayer && this.currentScreen === "GAME_MP") {
-            // Обновляем движение оппонента
             this.updateOpponentMovement();
             
-            // Мультиплеерный геймплей
             if (!this.gameOver && !this.isPaused) {
                 this.dx = this.nextDx;
                 this.dy = this.nextDy;
                 this.isTurningThisTick = false;
                 
-                // Двигаем голову
                 let head = { x: this.snake[0].x + this.dx, y: this.snake[0].y + this.dy };
                 
-                // Телепортация через стены
                 head.x = (head.x + this.tileCount) % this.tileCount;
                 head.y = (head.y + this.tileCount) % this.tileCount;
                 
                 this.snake.unshift(head);
                 
-                // Проверяем еду
                 if (head.x === this.food.x && head.y === this.food.y) {
                     playSound("eat", this.soundEnabled);
                     this.score++;
@@ -836,7 +843,6 @@ export class Game {
                     this.snake.pop();
                 }
                 
-                // Проверка столкновения с собой
                 for (let i = 1; i < this.snake.length; i++) {
                     if (this.snake[i].x === head.x && this.snake[i].y === head.y) {
                         this.endGame();
@@ -844,7 +850,6 @@ export class Game {
                     }
                 }
                 
-                // Проверка столкновения с оппонентом
                 for (let i = 0; i < this.opponentSnake.length; i++) {
                     const seg = this.opponentSnake[i];
                     if (Math.floor(seg.x) === head.x && Math.floor(seg.y) === head.y) {
@@ -853,11 +858,9 @@ export class Game {
                     }
                 }
                 
-                // Отправляем состояние оппоненту
                 this.sendMultiplayerState();
             }
             
-            // Отрисовка
             this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
             this.renderer.drawOpponentSnake(this.opponentSnake);
@@ -865,7 +868,6 @@ export class Game {
             this.particleSystem.update();
             this.particleSystem.draw(this.ctx);
             
-            // Отображаем счёт на экране
             this.ctx.fillStyle = this.isDarkTheme ? "#ffffff" : "#2b3a4a";
             this.ctx.font = "14px 'Press Start 2P'";
             this.ctx.textAlign = "center";
