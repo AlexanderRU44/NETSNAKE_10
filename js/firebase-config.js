@@ -11,7 +11,9 @@ import {
     updateDoc,
     deleteDoc,
     onSnapshot,
-    doc
+    doc,
+    setDoc,
+    enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -25,6 +27,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Включаем persistence для лучшей работы
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+        console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
+    } else if (err.code === 'unimplemented') {
+        console.warn("The current browser doesn't support persistence.");
+    }
+});
+
 export { 
     collection, 
     addDoc, 
@@ -36,5 +48,6 @@ export {
     updateDoc,
     deleteDoc,
     onSnapshot,
-    doc
+    doc,
+    setDoc
 };
