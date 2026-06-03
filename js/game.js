@@ -150,6 +150,10 @@ export class Game {
         this.opponentReady = false;
         this.multiplayerMenuSelection = 0;
         this.multiplayerResult = null;
+        // Интерполяция для плавного движения оппонента
+        this.opponentTargetSnake = [];
+        this.opponentMoveInterp = 0;
+        this.lastOpponentUpdate = 0;
 
         this.aboutLogic.loadAboutText();
         this.loadBestSingleScore = () => this.leaderboard.loadBestSingleScore();
@@ -365,6 +369,10 @@ export class Game {
             { x: 8, y: 10 }
         ];
         this.opponentSnake = [];
+        this.opponentTargetSnake = [];
+        this.opponentMoveInterp = 0;
+        this.lastOpponentUpdate = 0;
+        this.opponentScore = 0;
         this.ghostTrails = [];
         this.floatingScores = [];
         this.dx = 1;
@@ -372,7 +380,6 @@ export class Game {
         this.nextDx = 1;
         this.nextDy = 0;
         this.score = 0;
-        this.opponentScore = 0;
         this.gameOver = false;
         this.isPaused = false;
         this.foodType = "REGULAR";
@@ -400,15 +407,65 @@ export class Game {
 
     updateOpponent(state) {
         if (state.snake && Array.isArray(state.snake) && state.snake.length > 0) {
-            this.opponentSnake = JSON.parse(JSON.stringify(state.snake));
+            // Сохраняем текущую позицию как начальную для интерполяции
+            if (this.opponentSnake.length === 0) {
+                this.opponentSnake = JSON.parse(JSON.stringify(state.snake));
+                this.opponentTargetSnake = JSON.parse(JSON.stringify(state.snake));
+            } else {
+                // Сохраняем текущую позицию перед обновлением цели
+                this.opponentSnake = JSON.parse(JSON.stringify(this.opponentSnake));
+                this.opponentTargetSnake = JSON.parse(JSON.stringify(state.snake));
+                this.opponentMoveInterp = 0;
+                this.lastOpponentUpdate = performance.now();
+            }
         }
         if (state.score !== undefined) {
             this.opponentScore = state.score;
+            this.updateHUD();
         }
         if (state.alive === false && !this.gameOver) {
             this.endGame();
         }
-        this.updateHUD();
+    }
+
+    updateOpponentMovement() {
+        if (!this.isMultiplayer || this.opponentTargetSnake.length === 0) return;
+        
+        const now = performance.now();
+        if (this.lastOpponentUpdate === 0) {
+            this.lastOpponentUpdate = now;
+            return;
+        }
+        
+        // Интерполяция за 100мс (плавное движение)
+        const interpDuration = 100;
+        const delta = Math.min(1, (now - this.lastOpponentUpdate) / interpDuration);
+        
+        if (delta >= 1) {
+            // Достигли цели
+            this.opponentSnake = JSON.parse(JSON.stringify(this.opponentTargetSnake));
+        } else {
+            // Интерполяция позиций сегментов
+            const newSnake = [];
+            const maxLen = Math.max(this.opponentSnake.length, this.opponentTargetSnake.length);
+            
+            for (let i = 0; i < maxLen; i++) {
+                const from = this.opponentSnake[i];
+                const to = this.opponentTargetSnake[i];
+                
+                if (from && to) {
+                    newSnake.push({
+                        x: from.x + (to.x - from.x) * delta,
+                        y: from.y + (to.y - from.y) * delta
+                    });
+                } else if (to) {
+                    newSnake.push({ x: to.x, y: to.y });
+                } else if (from) {
+                    newSnake.push({ x: from.x, y: from.y });
+                }
+            }
+            this.opponentSnake = newSnake;
+        }
     }
 
     onOpponentReady(ready) {
@@ -741,12 +798,11 @@ export class Game {
                 }
             }
         } else if (this.isMultiplayer && this.currentScreen === "GAME_MP") {
+            // Обновляем движение оппонента с интерполяцией
+            this.updateOpponentMovement();
+            
             // Мультиплеерный геймплей
             if (!this.gameOver && !this.isPaused) {
-                // Сохраняем старое направление для проверки
-                const oldDx = this.dx;
-                const oldDy = this.dy;
-                
                 this.dx = this.nextDx;
                 this.dy = this.nextDy;
                 this.isTurningThisTick = false;
