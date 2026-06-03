@@ -12,6 +12,8 @@ export class MultiplayerManager {
         this.roomDocRef = null;
         this.opponentData = null;
         this.localPlayerNumber = 1;
+        this.lastSentState = null;
+        this.sendInterval = null;
     }
 
     generateRoomId() {
@@ -56,6 +58,7 @@ export class MultiplayerManager {
             localStorage.setItem('mp_player_id', this.playerId);
             
             this.listenToRoom();
+            this.startStateSender();
             
             return { success: true, roomId: this.roomId };
         } catch (error) {
@@ -106,12 +109,28 @@ export class MultiplayerManager {
             
             this.isHost = false;
             this.listenToRoom();
+            this.startStateSender();
             
             return { success: true };
         } catch (error) {
             console.error("Error joining room:", error);
             return { success: false, error: error.message };
         }
+    }
+
+    startStateSender() {
+        if (this.sendInterval) clearInterval(this.sendInterval);
+        
+        // Отправляем состояние каждые 50мс для плавного движения
+        this.sendInterval = setInterval(() => {
+            if (this.game.isMultiplayer && !this.game.gameOver && this.game.currentScreen === 'GAME_MP') {
+                this.sendGameState({
+                    snake: this.game.snake,
+                    score: this.game.score,
+                    alive: !this.game.gameOver
+                });
+            }
+        }, 50);
     }
 
     listenToRoom() {
@@ -129,24 +148,30 @@ export class MultiplayerManager {
             const roomData = roomDoc.data();
             this.roomDocRef = roomDoc.ref;
             
+            // Определяем номер игрока
             if (roomData.player1 && roomData.player1.id === this.playerId) {
                 this.localPlayerNumber = 1;
                 this.opponentId = roomData.player2?.id || null;
                 this.opponentData = roomData.player2;
+                console.log("I am player 1");
             } else if (roomData.player2 && roomData.player2.id === this.playerId) {
                 this.localPlayerNumber = 2;
                 this.opponentId = roomData.player1.id;
                 this.opponentData = roomData.player1;
+                console.log("I am player 2");
             }
             
-            if (roomData.status === 'playing' && this.game.currentScreen !== 'GAME_MP') {
-                this.startMultiplayerGame(roomData);
-            } else if (roomData.status === 'finished') {
-                this.handleGameFinished(roomData);
-            }
-            
+            // Обновляем статус готовности оппонента
             if (this.game.onOpponentReady && this.opponentData) {
                 this.game.onOpponentReady(this.opponentData.ready);
+            }
+            
+            // Запускаем игру если оба готовы
+            if (roomData.status === 'playing' && this.game.currentScreen !== 'GAME_MP') {
+                console.log("Starting game! Both players ready");
+                this.startMultiplayerGame();
+            } else if (roomData.status === 'finished') {
+                this.handleGameFinished(roomData);
             }
         });
     }
@@ -154,22 +179,28 @@ export class MultiplayerManager {
     async sendReady() {
         if (!this.roomDocRef) return;
         
+        console.log("Sending ready as player", this.localPlayerNumber);
+        
         const updateData = this.localPlayerNumber === 1 
             ? { 'player1.ready': true, updatedAt: new Date() }
             : { 'player2.ready': true, updatedAt: new Date() };
         
         await updateDoc(this.roomDocRef, updateData);
         
+        // Проверяем готовность обоих
         const q = query(collection(db, "multiplayer_rooms"), where("roomId", "==", this.roomId));
         const querySnapshot = await getDocs(q);
         const roomData = querySnapshot.docs[0].data();
         
+        console.log("Player1 ready:", roomData.player1?.ready, "Player2 ready:", roomData.player2?.ready);
+        
         if (roomData.player1?.ready && roomData.player2?.ready && roomData.status === 'waiting') {
+            console.log("Both ready! Starting game...");
             await updateDoc(this.roomDocRef, { status: 'playing' });
         }
     }
 
-    startMultiplayerGame(roomData) {
+    startMultiplayerGame() {
         this.game.currentScreen = 'GAME_MP';
         this.game.isMultiplayer = true;
         this.game.multiplayerLocalNumber = this.localPlayerNumber;
@@ -180,12 +211,16 @@ export class MultiplayerManager {
     listenToGameState() {
         if (this.gameStateListener) return;
         
+        console.log("Listening to game states for room:", this.roomId);
+        
         const q = query(collection(db, "multiplayer_game_states"), where("roomId", "==", this.roomId));
         
         this.gameStateListener = onSnapshot(q, (snapshot) => {
             snapshot.forEach((doc) => {
                 const state = doc.data();
+                // Обновляем данные оппонента (не свои)
                 if (state.playerId !== this.playerId) {
+                    console.log("Received opponent state:", state);
                     if (this.game.updateOpponent) {
                         this.game.updateOpponent(state);
                     }
@@ -197,6 +232,15 @@ export class MultiplayerManager {
     async sendGameState(gameState) {
         if (!this.roomId || !this.playerId) return;
         if (!gameState.snake || gameState.snake.length === 0) return;
+        
+        // Не отправляем одно и то же состояние много раз
+        const stateKey = JSON.stringify({
+            snake: gameState.snake.map(s => `${s.x},${s.y}`).join(';'),
+            score: gameState.score
+        });
+        
+        if (this.lastSentState === stateKey) return;
+        this.lastSentState = stateKey;
         
         try {
             const q = query(
@@ -249,6 +293,11 @@ export class MultiplayerManager {
     }
 
     async leaveRoom() {
+        if (this.sendInterval) {
+            clearInterval(this.sendInterval);
+            this.sendInterval = null;
+        }
+        
         if (this.roomDocRef) {
             await updateDoc(this.roomDocRef, {
                 [`player${this.localPlayerNumber}.connected`]: false
@@ -258,6 +307,10 @@ export class MultiplayerManager {
     }
 
     cleanup() {
+        if (this.sendInterval) {
+            clearInterval(this.sendInterval);
+            this.sendInterval = null;
+        }
         if (this.roomListener) {
             this.roomListener();
             this.roomListener = null;
@@ -274,5 +327,6 @@ export class MultiplayerManager {
         this.playerId = null;
         this.opponentId = null;
         this.roomDocRef = null;
+        this.lastSentState = null;
     }
 }
