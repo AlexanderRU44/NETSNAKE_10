@@ -1,0 +1,91 @@
+/* Стили для оверлея подключения к мультиплееру */
+.join-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    background: #2b3a4a;
+    border: 3px solid #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    z-index: 100;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.join-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.join-overlay label {
+    color: #ffffff;
+    font-size: 11px;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    line-height: 1.4;
+}
+
+.join-overlay input {
+    background: #ffffff;
+    color: #2b3a4a;
+    border: none;
+    padding: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    text-align: center;
+    width: 100%;
+    outline: none;
+    border-radius: 6px;
+    letter-spacing: 2px;
+}
+
+.join-buttons {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.join-overlay button {
+    background: #ffffff;
+    color: #2b3a4a;
+    border: none;
+    padding: 8px 15px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    border-radius: 6px;
+    flex: 1;
+    transition: all 0.05s ease;
+}
+
+.join-overlay button:active {
+    transform: translateY(2px);
+}
+
+/* Тёмная тема для оверлея */
+body.dark-theme .join-overlay {
+    background: #0d1117;
+    border-color: #58a6ff;
+}
+
+body.dark-theme .join-overlay label {
+    color: #8b949e;
+}
+
+body.dark-theme .join-overlay input {
+    background: #161b22;
+    color: #58a6ff;
+    border: 1px solid #30363d;
+}
+
+body.dark-theme .join-overlay button {
+    background: #21262d;
+    color: #c9d1d9;
+}
+
+body.dark-theme .join-overlay button:active {
+    background: #30363d;
+}
