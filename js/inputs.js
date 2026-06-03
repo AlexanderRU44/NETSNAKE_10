@@ -10,16 +10,17 @@ export function setupInputHandlers(
     const btnBack = document.getElementById("btn-back");
     const btnSpace = document.getElementById("btn-space");
 
-    btnUp.onclick = () => { triggerVibration(); handleInput("UP"); };
-    btnDown.onclick = () => { triggerVibration(); handleInput("DOWN"); };
-    btnLeft.onclick = () => { triggerVibration(); handleInput("LEFT"); };
-    btnRight.onclick = () => { triggerVibration(); handleInput("RIGHT"); };
-    btnMenu.onclick = () => { triggerVibration(); handleMenuPress(); };
-    btnBack.onclick = () => { triggerVibration(); handleBackPress(); };
-    btnSpace.onclick = () => { triggerVibration(); handleCenter(); };
+    if (btnUp) btnUp.onclick = () => { triggerVibration(); handleInput("UP"); };
+    if (btnDown) btnDown.onclick = () => { triggerVibration(); handleInput("DOWN"); };
+    if (btnLeft) btnLeft.onclick = () => { triggerVibration(); handleInput("LEFT"); };
+    if (btnRight) btnRight.onclick = () => { triggerVibration(); handleInput("RIGHT"); };
+    if (btnMenu) btnMenu.onclick = () => { triggerVibration(); handleMenuPress(); };
+    if (btnBack) btnBack.onclick = () => { triggerVibration(); handleBackPress(); };
+    if (btnSpace) btnSpace.onclick = () => { triggerVibration(); handleCenter(); };
     
     window.addEventListener("keydown", (e) => {
         if (document.activeElement === nameInput) return; 
+        
         const mapping = { 
             "ArrowUp": "UP", "KeyW": "UP", 
             "ArrowDown": "DOWN", "KeyS": "DOWN", 
@@ -27,15 +28,23 @@ export function setupInputHandlers(
             "ArrowRight": "RIGHT", "KeyD": "RIGHT", 
             "Space": "CENTER", 
             "Enter": "CENTER", 
-            "Escape": "MENU",      // ESC теперь открывает меню
+            "Escape": "MENU",
             "Backspace": "BACK"
         };
+        
         const action = mapping[e.code];
         if (!action) return;
+        
         e.preventDefault(); 
-        if (action === "CENTER") handleCenter(); 
-        else if (action === "BACK") handleBackPress(); 
-        else if (action === "MENU") handleMenuPress(); 
-        else handleInput(action);
+        
+        if (action === "CENTER") {
+            handleCenter(); 
+        } else if (action === "BACK") {
+            handleBackPress(); 
+        } else if (action === "MENU") {
+            handleMenuPress(); 
+        } else {
+            handleInput(action);
+        }
     });
 }
