@@ -19,14 +19,14 @@ export const i18n = {
         modeDescriptions: [
             "Классическая змейка. Еда +1, длина растёт, стены телепортируют.",
             "Стены смертельны. Осторожно на границах поля!",
-            "На поле 8 неподвижных камней. Не врезайтесь!",
+            "8 неподвижных камней на поле. Столкновение = смерть.",
             "За змейкой остаются призрачные следы. Касание следа = смерть.",
-            "Камни движутся каждые несколько секунд. Будьте внимательны!",
-            "Против ИИ-соперника. Кто наберёт больше очков?",
-            "На выполнение задания 60 секунд. Каждая еда +5 секунд.",
+            "Камни движутся каждые 15 тиков. Перед движением камень мигает.",
+            "Битва против ИИ-соперника. Кто наберёт больше очков?",
+            "60 секунд на выполнение. Каждая еда +5 секунд.",
             "Еда каждые 3 секунды перемещается на новое место.",
-            "Собирайте золотые монеты (+1 очко). Еды нет, змейка не растёт.",
-            "Два портала на поле. Вход в один телепортирует в другой."
+            "Собирайте золотые монеты (+1). Еды нет, змейка растёт.",
+            "2 портала на поле. Вход в один = телепорт в другой."
         ],
         modeInfoTitle: "ИНФОРМАЦИЯ О РЕЖИМЕ",
         modeInfoCurrent: "ТЕКУЩИЙ РЕЖИМ:",
@@ -59,6 +59,72 @@ export const i18n = {
             dietMode: "ДИЕТА", dietModeDesc: "СЪЕШЬТЕ СИНЕЕ ЯБЛОКО ПРИ ДЛИНЕ ЗМЕЙКИ В 3 БЛОКА",
             identityCrisis: "КРИЗИС ИДЕНТИЧНОСТИ", identityCrisisDesc: "СМЕНИТЕ ТЕМУ ОФОРМЛЕНИЯ 5 РАЗ ЗА СЕССИЮ",
             greed: "ЖАДНОСТЬ", greedDesc: "ПОГИБНИТЕ В ШАГЕ ОТ ЗОЛОТОГО ЯБЛОКА"
+        },
+        // Расширенная информация для экрана информации о режиме
+        modeDetails: {
+            classic: [
+                "• КЛАССИЧЕСКАЯ МЕХАНИКА ЗМЕЙКИ",
+                "• ЕДА +1 ОЧКО, ДЛИНА РАСТЁТ",
+                "• СТЕНЫ ТЕЛЕПОРТИРУЮТ (БЕЗ СМЕРТИ)",
+                "• РЕДКАЯ ЕДА: ЗОЛОТО (+10), СИНЯЯ (УМЕНЬШЕНИЕ)",
+                "• ТУРБО-РЕЖИМ: УСКОРЕНИЕ + УВЕЛИЧЕННЫЙ СЧЁТ"
+            ],
+            walls: [
+                "• СТЕНЫ СМЕРТЕЛЬНЫ - НЕ ВРЕЗАЙТЕСЬ!",
+                "• ВЫХОД ЗА ГРАНИЦУ = КОНЕЦ ИГРЫ",
+                "• ТРЕБУЕТ ПОВЫШЕННОЙ ВНИМАТЕЛЬНОСТИ",
+                "• ОСТОРОЖНО НА ПОВОРОТАХ У КРАЁВ"
+            ],
+            stones: [
+                "• 8 НЕПОДВИЖНЫХ КАМНЕЙ НА ПОЛЕ",
+                "• СТОЛКНОВЕНИЕ С КАМНЕМ = СМЕРТЬ",
+                "• КАМНИ НЕ ДВИГАЮТСЯ",
+                "• ТРЕБУЕТСЯ ТОЧНОЕ ПЛАНИРОВАНИЕ МАРШРУТА"
+            ],
+            ghost: [
+                "• ЗА ЗМЕЙКОЙ ОСТАЮТСЯ СЛЕДЫ",
+                "• КАСАНИЕ СЛЕДА = СМЕРТЬ",
+                "• СЛЕДЫ ИСЧЕЗАЮТ ЧЕРЕЗ 25 ТИКОВ",
+                "• ТРЕБУЕТСЯ АККУРАТНОЕ МАНЕВРИРОВАНИЕ"
+            ],
+            movingStones: [
+                "• КАМНИ ПЕРЕМЕЩАЮТСЯ КАЖДЫЕ 15 ТИКОВ",
+                "• ПЕРЕД ДВИЖЕНИЕМ КАМЕНЬ МИГАЕТ",
+                "• ТРЕБУЕТ ПРОГНОЗИРОВАНИЯ ДВИЖЕНИЙ",
+                "• ВЫЗОВ ДЛЯ ОПЫТНЫХ ИГРОКОВ"
+            ],
+            vsAI: [
+                "• БИТВА ПРОТИВ ИСКУССТВЕННОГО ИНТЕЛЛЕКТА",
+                "• КТО НАБЕРЁТ БОЛЬШЕ ОЧКОВ?",
+                "• ИИ ИСПОЛЬЗУЕТ АЛГОРИТМ ПОИСКА ПУТИ",
+                "• ПОБЕДА = ВЫШЕ СЧЁТ ЧЕМ У ИИ"
+            ],
+            timeMode: [
+                "• 60 СЕКУНД НА ВЫПОЛНЕНИЕ",
+                "• КАЖДАЯ ЕДА +5 СЕКУНД",
+                "• ПРИ 10 СЕКУНДАХ ЭКРАН МИГАЕТ",
+                "• ВРЕМЯ = ГЛАВНЫЙ ВРАГ"
+            ],
+            rushMode: [
+                "• ЕДА ПЕРЕМЕЩАЕТСЯ КАЖДЫЕ 3 СЕКУНДЫ",
+                "• НУЖНО БЫТЬ БЫСТРЕЕ ЕДЫ",
+                "• ДОБАВЛЯЕТ ЭЛЕМЕНТ ХАОСА",
+                "• ТРЕБУЕТ БЫСТРОЙ РЕАКЦИИ"
+            ],
+            coinCollector: [
+                "• СОБИРАЙТЕ ЗОЛОТЫЕ МОНЕТЫ (+1)",
+                "• ЗМЕЙКА РАСТЁТ ПРИ СБОРЕ МОНЕТ",
+                "• ЕДА ОТСУТСТВУЕТ НА ПОЛЕ",
+                "• 30 МОНЕТ НА ПОЛЕ, ОБНОВЛЯЮТСЯ",
+                "• СТЕНЫ РАБОТАЮТ КАК В КЛАССИКЕ"
+            ],
+            portals: [
+                "• 2 ПОРТАЛА НА ПОЛЕ",
+                "• ВХОД В ОДИН = ТЕЛЕПОРТ В ДРУГОЙ",
+                "• ПОРТАЛЫ ПЕРЕМЕЩАЮТСЯ КАЖДЫЕ 5 СЕКУНД",
+                "• ВИЗУАЛЬНЫЙ И ЗВУКОВОЙ ЭФФЕКТ",
+                "• СТЕНЫ ТЕЛЕПОРТИРУЮТ КАК В КЛАССИКЕ"
+            ]
         }
     },
     EN: {
@@ -81,14 +147,14 @@ export const i18n = {
         modeDescriptions: [
             "Classic snake. Food +1, grows, walls wrap around.",
             "Walls are deadly. Watch the borders!",
-            "8 static stones on the field. Don't crash!",
+            "8 static stones on the field. Crash = death.",
             "Ghost trails remain behind. Touching a trail = death.",
-            "Stones move every few seconds. Stay alert!",
-            "VS AI opponent. Who scores higher?",
+            "Stones move every 15 ticks. Stone flashes before moving.",
+            "Battle vs AI opponent. Who scores higher?",
             "60 seconds time limit. Each food +5 seconds.",
-            "Food teleports to a new location every 3 seconds.",
-            "Collect gold coins (+1 each). No food, snake does not grow.",
-            "Two portals on the field. Enter one to teleport to the other."
+            "Food teleports to new location every 3 seconds.",
+            "Collect gold coins (+1 each). No food, snake grows.",
+            "2 portals on the field. Enter one = teleport to other."
         ],
         modeInfoTitle: "MODE INFO",
         modeInfoCurrent: "CURRENT MODE:",
@@ -121,6 +187,72 @@ export const i18n = {
             dietMode: "DIET MODE", dietModeDesc: "EAT A SHRINK FOOD WITH SNAKE LENGTH OF 3",
             identityCrisis: "IDENTITY CRISIS", identityCrisisDesc: "SWITCH THE DESIGN THEME 5 TIMES IN MENU",
             greed: "GREED", greedDesc: "DIE JUST ONE STEP AWAY FROM A GOLDEN APPLE"
+        },
+        // Expanded mode details for mode info screen
+        modeDetails: {
+            classic: [
+                "• CLASSIC SNAKE MECHANICS",
+                "• FOOD +1 POINT, SNAKE GROWS",
+                "• WALLS WRAP AROUND (NO DEATH)",
+                "• RARE FOOD: GOLD (+10), BLUE (SHRINK)",
+                "• TURBO MODE: SPEED BOOST + EXTRA SCORE"
+            ],
+            walls: [
+                "• WALLS ARE DEADLY - DON'T CRASH!",
+                "• LEAVING THE BORDER = GAME OVER",
+                "• REQUIRES EXTRA ATTENTION",
+                "• BE CAREFUL AT TURNS NEAR EDGES"
+            ],
+            stones: [
+                "• 8 STATIC STONES ON THE FIELD",
+                "• CRASHING INTO A STONE = DEATH",
+                "• STONES DO NOT MOVE",
+                "• REQUIRES PRECISE ROUTE PLANNING"
+            ],
+            ghost: [
+                "• GHOST TRAILS REMAIN BEHIND",
+                "• TOUCHING A TRAIL = DEATH",
+                "• TRAILS DISAPPEAR AFTER 25 TICKS",
+                "• REQUIRES CAREFUL MANEUVERING"
+            ],
+            movingStones: [
+                "• STONES MOVE EVERY 15 TICKS",
+                "• STONE FLASHES BEFORE MOVING",
+                "• REQUIRES MOVEMENT PREDICTION",
+                "• CHALLENGE FOR EXPERIENCED PLAYERS"
+            ],
+            vsAI: [
+                "• BATTLE AGAINST ARTIFICIAL INTELLIGENCE",
+                "• WHO SCORES HIGHER?",
+                "• AI USES PATHFINDING ALGORITHM",
+                "• VICTORY = SCORE HIGHER THAN AI"
+            ],
+            timeMode: [
+                "• 60 SECOND TIME LIMIT",
+                "• EACH FOOD +5 SECONDS",
+                "• SCREEN FLASHES AT 10 SECONDS",
+                "• TIME IS YOUR MAIN ENEMY"
+            ],
+            rushMode: [
+                "• FOOD MOVES EVERY 3 SECONDS",
+                "• NEED TO BE FASTER THAN FOOD",
+                "• ADDS CHAOS ELEMENT",
+                "• REQUIRES FAST REACTION"
+            ],
+            coinCollector: [
+                "• COLLECT GOLD COINS (+1 EACH)",
+                "• SNAKE GROWS WHEN COLLECTING COINS",
+                "• NO FOOD ON THE FIELD",
+                "• 30 COINS ON FIELD, REGENERATE",
+                "• WALLS WORK LIKE IN CLASSIC MODE"
+            ],
+            portals: [
+                "• 2 PORTALS ON THE FIELD",
+                "• ENTER ONE = TELEPORT TO OTHER",
+                "• PORTALS MOVE EVERY 5 SECONDS",
+                "• VISUAL AND SOUND EFFECT",
+                "• WALLS WRAP LIKE IN CLASSIC MODE"
+            ]
         }
     }
 };
