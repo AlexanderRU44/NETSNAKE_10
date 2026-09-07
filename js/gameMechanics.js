@@ -44,12 +44,16 @@ export class GameMechanics {
             this.game.updateHUD();
         }
         
-        // Сбор монет (режим 8)
+        // Сбор монет (режим 8) - змейка растёт!
         const coinValue = this.game.specialModes.collectCoin(head);
         if (coinValue > 0) {
             this.game.score += coinValue;
             this.game.particleSystem.addExplosion(head.x, head.y, "#ffd700", 6);
             addFloatingScore(this.game.floatingScores, head.x, head.y, `+${coinValue}`, this.game.currentLang);
+            // Змейка растёт при сборе монеты (добавляем сегмент)
+            // Уже добавлен head через unshift, поэтому просто не удаляем хвост
+            // Но нужно убедиться, что хвост не удаляется при сборе монеты
+            // Мы не удаляем хвост, так как уже сделали unshift
             this.game.updateHUD();
         }
         
@@ -78,7 +82,7 @@ export class GameMechanics {
             }
         }
         
-        // Еда
+        // Еда (только не в режиме монет)
         if (this.game.currentModeIdx !== 8 && head.x === this.game.food.x && head.y === this.game.food.y) {
             const speed = this.game.isTurboActive ? this.game.speeds[2] : this.game.speeds[this.game.currentSpeedMode];
             let partColor = "#ff4d4d";
@@ -89,7 +93,12 @@ export class GameMechanics {
             this.game.particleSystem.addExplosion(head.x, head.y, partColor, 10);
             this.game.foodLogic.processFoodEaten(head, speed);
         } else {
-            this.game.snake.pop();
+            // Удаляем хвост только если не собрали монету и не съели еду
+            // В режиме монет хвост не удаляется (змейка растёт)
+            if (this.game.currentModeIdx !== 8 || coinValue === 0) {
+                this.game.snake.pop();
+            }
+            // Если собрали монету - хвост остаётся (уже добавлен head через unshift)
         }
     }
     
