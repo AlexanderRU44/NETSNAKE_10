@@ -142,7 +142,8 @@ export class Game {
         this.gameMechanics = new GameMechanics(this);
 
         this.aboutLogic.loadAboutText();
-        this.loadBestSingleScore = () => this.leaderboard.loadBestSingleScore();
+        
+        // Исправленные методы
         this.loadTopTen = async () => {
             await this.leaderboard.loadTopTen();
             this.globalTopTen = this.leaderboard.globalTopTen;
@@ -558,5 +559,10 @@ export class Game {
 
     updateMiniDisplay() {
         this.screenEffects.updateMiniDisplay();
+    }
+    
+    // Метод для загрузки лучшего рекорда
+    loadBestSingleScore() {
+        this.leaderboard.loadBestSingleScore();
     }
 }
