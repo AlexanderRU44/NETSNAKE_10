@@ -37,7 +37,7 @@ export const i18n = {
         shrink: "УМЕНЬШЕНИЕ",
         shield: "ЩИТ",
         shieldDesc: "ЗАЩИЩАЕТ ОТ ОДНОГО СТОЛКНОВЕНИЯ",
-        github: "GITHUB: https://github.com/AlexanderRU44/NETSNAKE_10",
+        github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "ПОРТАЛ!",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
@@ -99,7 +99,7 @@ export const i18n = {
         shrink: "SHRINK",
         shield: "SHIELD",
         shieldDesc: "PROTECTS FROM ONE COLLISION",
-        github: "GITHUB: https://github.com/AlexanderRU44/NETSNAKE_10",
+        github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "PORTAL!",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
