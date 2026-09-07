@@ -310,7 +310,13 @@ export class Game {
         this.specialModes.reset();
 
         this.screenEffects.generateNextFoodType();
-        if (this.currentModeIdx !== 8) this.generateFood();
+        // В режиме сбора монет (индекс 8) еда не генерируется
+        if (this.currentModeIdx !== 8) {
+            this.generateFood();
+        } else {
+            // В режиме монет устанавливаем food в null или скрываем
+            this.food = null;
+        }
         this.generateObstacles();
         if (this.currentModeIdx === 5) {
             this.aiLogic.initAIOpponent();
@@ -469,7 +475,10 @@ export class Game {
             if (this.aiOpponent && this.currentModeIdx === 5) {
                 this.renderer.drawAIOpponent(this.aiOpponent.snake);
             }
-            this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
+            // Еда отрисовывается только не в режиме монет
+            if (this.currentModeIdx !== 8 && this.food) {
+                this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
+            }
             this.renderer.drawGift(this.gift, this.flashToggle);
             this.renderer.drawFloatingScores(this.floatingScores);
             if (this.currentModeIdx === 8) this.renderer.drawCoins(this.specialModes.coins);
@@ -493,26 +502,32 @@ export class Game {
         this.updateTimeMode();
         this.moveFoodInRushMode();
 
-        if (this.foodType === "BIG" || this.foodType === "SHRINK" || this.foodType === "TURBO" || this.foodType === "SHIELD") {
-            let currentTickSpeed = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
-            this.bonusTimer -= currentTickSpeed;
-            if (this.bonusTimer < 0) this.bonusTimer = 0;
-            this.timerContainer.style.visibility = "visible";
-            let maxTime = maxBigFoodTime;
-            if (this.foodType === "SHRINK") maxTime = maxShrinkTime;
-            if (this.foodType === "TURBO") maxTime = maxTurboTime;
-            if (this.foodType === "SHIELD") maxTime = 0;
-            if (maxTime > 0) {
-                const percentage = Math.max(0, (this.bonusTimer / maxTime) * 100);
-                this.timerBar.style.width = percentage + "%";
-            }
+        // Таймеры для бонусной еды только не в режиме монет
+        if (this.currentModeIdx !== 8) {
+            if (this.foodType === "BIG" || this.foodType === "SHRINK" || this.foodType === "TURBO" || this.foodType === "SHIELD") {
+                let currentTickSpeed = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
+                this.bonusTimer -= currentTickSpeed;
+                if (this.bonusTimer < 0) this.bonusTimer = 0;
+                this.timerContainer.style.visibility = "visible";
+                let maxTime = maxBigFoodTime;
+                if (this.foodType === "SHRINK") maxTime = maxShrinkTime;
+                if (this.foodType === "TURBO") maxTime = maxTurboTime;
+                if (this.foodType === "SHIELD") maxTime = 0;
+                if (maxTime > 0) {
+                    const percentage = Math.max(0, (this.bonusTimer / maxTime) * 100);
+                    this.timerBar.style.width = percentage + "%";
+                }
 
-            if (this.bonusTimer <= 0 && this.foodType !== "SHIELD") {
-                this.foodType = "REGULAR";
+                if (this.bonusTimer <= 0 && this.foodType !== "SHIELD") {
+                    this.foodType = "REGULAR";
+                    this.timerContainer.style.visibility = "hidden";
+                    this.generateFood();
+                }
+            } else if (this.foodType === "REGULAR") {
                 this.timerContainer.style.visibility = "hidden";
-                this.generateFood();
             }
-        } else if (this.foodType === "REGULAR") {
+        } else {
+            // В режиме монет скрываем таймер
             this.timerContainer.style.visibility = "hidden";
         }
 
@@ -552,7 +567,10 @@ export class Game {
             if (this.aiOpponent && this.currentModeIdx === 5) {
                 this.renderer.drawAIOpponent(this.aiOpponent.snake);
             }
-            this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
+            // Еда отрисовывается только не в режиме монет
+            if (this.currentModeIdx !== 8 && this.food) {
+                this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
+            }
             this.renderer.drawGift(this.gift, this.flashToggle);
             this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
             this.renderer.drawFloatingScores(this.floatingScores);
