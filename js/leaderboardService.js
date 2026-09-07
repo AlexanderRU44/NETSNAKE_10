@@ -24,7 +24,7 @@ export class LeaderboardService {
     }
 
     async loadBestSingleScore() {
-        this.game.hiScore = localStorage.getItem(`snake_hi_score_mode_${this.game.currentModeIdx}`) || 0;
+        this.game.hiScore = parseInt(localStorage.getItem(`snake_hi_score_mode_${this.game.currentModeIdx}`)) || 0;
         this.game.bestPlayerName = localStorage.getItem(`snake_best_player_mode_${this.game.currentModeIdx}`) || "---";
         this.game.updateHUD();
         try {
@@ -43,7 +43,9 @@ export class LeaderboardService {
                 localStorage.setItem(`snake_best_player_mode_${this.game.currentModeIdx}`, this.game.bestPlayerName);
                 this.game.updateHUD();
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error('Error loading best score:', e); 
+        }
     }
 
     async loadTopTen() {
