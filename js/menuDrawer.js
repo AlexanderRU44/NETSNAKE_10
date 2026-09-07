@@ -218,7 +218,6 @@ export class MenuDrawer {
             ctx.font = "7.5px 'Press Start 2P'";
             ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
             
-            // Перенос описания задания
             const descText = t.taskList[key + "Desc"] || "";
             const maxWidth = 280;
             const descLines = this.wrapText(descText, maxWidth, ctx);
@@ -278,7 +277,6 @@ export class MenuDrawer {
                 ctx.font = "7px 'Press Start 2P'";
                 ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
                 
-                // Перенос описания достижения
                 const descText = t.achList[key + "Desc"] || "";
                 const maxWidth = 280;
                 const descLines = this.wrapText(descText, maxWidth, ctx);
@@ -397,7 +395,7 @@ export class MenuDrawer {
         ctx.textAlign = "center";
         ctx.fillText(`${t.modeInfoCurrent} ${modeName}`, 200, 75);
         
-        // Описание режима с переносом строк
+        // Описание режима с переносом строк - ИСПОЛЬЗУЕМ ПОЛНЫЙ ТЕКСТ
         ctx.font = "8px 'Press Start 2P'";
         ctx.fillStyle = this.game.isDarkTheme ? "#58a6ff" : "#4a90e2";
         ctx.textAlign = "center";
@@ -412,7 +410,7 @@ export class MenuDrawer {
             y += 18;
         }
         
-        // Детальная информация
+        // Детальная информация - ПОЛНЫЙ СПИСОК
         y = y + 10;
         ctx.textAlign = "left";
         ctx.font = "7px 'Press Start 2P'";
