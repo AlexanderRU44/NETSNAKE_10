@@ -1,3 +1,5 @@
+import { makeAIMove as makeAIOpponentMove } from './aiOpponent.js';
+
 export function makeAIMove(snake, gift, food, tileCount, obstacles, ghostTrails, currentModeIdx) {
     const head = snake[0];
     const queue = [ [head.x, head.y, []] ];
