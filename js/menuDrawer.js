@@ -10,6 +10,27 @@ export class MenuDrawer {
         this.githubLinkRect = null;
     }
 
+    // Вспомогательный метод для переноса текста
+    wrapText(text, maxWidth, ctx) {
+        if (!text) return [];
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (let word of words) {
+            let testLine = currentLine ? currentLine + ' ' + word : word;
+            let metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && currentLine !== '') {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
+    }
+
     drawPixelMenu(title) {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
@@ -196,7 +217,14 @@ export class MenuDrawer {
             ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.taskList[key]}`, 42, y);
             ctx.font = "7.5px 'Press Start 2P'";
             ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
-            ctx.fillText(t.taskList[key + "Desc"], 42, y + 15);
+            
+            // Перенос описания задания
+            const descText = t.taskList[key + "Desc"] || "";
+            const maxWidth = 280;
+            const descLines = this.wrapText(descText, maxWidth, ctx);
+            descLines.forEach((line, lineIdx) => {
+                ctx.fillText(line, 42, y + 15 + (lineIdx * 12));
+            });
             ctx.font = "11px 'Press Start 2P'";
         });
         ctx.restore();
@@ -249,7 +277,14 @@ export class MenuDrawer {
                 ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.achList[key]}`, 42, y);
                 ctx.font = "7px 'Press Start 2P'";
                 ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
-                ctx.fillText(t.achList[key + "Desc"], 42, y + 13);
+                
+                // Перенос описания достижения
+                const descText = t.achList[key + "Desc"] || "";
+                const maxWidth = 280;
+                const descLines = this.wrapText(descText, maxWidth, ctx);
+                descLines.forEach((line, lineIdx) => {
+                    ctx.fillText(line, 42, y + 13 + (lineIdx * 10));
+                });
             }
         });
         ctx.restore();
@@ -341,158 +376,10 @@ export class MenuDrawer {
         const modeName = t.gameModes[modeIdx];
         const modeDesc = t.modeDescriptions[modeIdx] || t.unknownTask;
         
-        // Расширенная информация о режимах
-        const modeDetails = {
-            0: { // КЛАССИКА
-                ru: [
-                    "• КЛАССИЧЕСКАЯ МЕХАНИКА ЗМЕЙКИ",
-                    "• ЕДА +1 ОЧКО, ДЛИНА РАСТЁТ",
-                    "• СТЕНЫ ТЕЛЕПОРТИРУЮТ (БЕЗ СМЕРТИ)",
-                    "• РЕДКАЯ ЕДА: ЗОЛОТО (+10), СИНЯЯ (УМЕНЬШЕНИЕ)",
-                    "• ТУРБО-РЕЖИМ: УСКОРЕНИЕ + УВЕЛИЧЕННЫЙ СЧЁТ"
-                ],
-                en: [
-                    "• CLASSIC SNAKE MECHANICS",
-                    "• FOOD +1 POINT, SNAKE GROWS",
-                    "• WALLS WRAP AROUND (NO DEATH)",
-                    "• RARE FOOD: GOLD (+10), BLUE (SHRINK)",
-                    "• TURBO MODE: SPEED BOOST + EXTRA SCORE"
-                ]
-            },
-            1: { // СТЕНЫ
-                ru: [
-                    "• СТЕНЫ СМЕРТЕЛЬНЫ - НЕ ВРЕЗАЙТЕСЬ!",
-                    "• ВЫХОД ЗА ГРАНИЦУ = КОНЕЦ ИГРЫ",
-                    "• ТРЕБУЕТ ПОВЫШЕННОЙ ВНИМАТЕЛЬНОСТИ",
-                    "• ОСТОРОЖНО НА ПОВОРОТАХ У КРАЁВ"
-                ],
-                en: [
-                    "• WALLS ARE DEADLY - DON'T CRASH!",
-                    "• LEAVING THE BORDER = GAME OVER",
-                    "• REQUIRES EXTRA ATTENTION",
-                    "• BE CAREFUL AT TURNS NEAR EDGES"
-                ]
-            },
-            2: { // КАМНИ
-                ru: [
-                    "• 8 НЕПОДВИЖНЫХ КАМНЕЙ НА ПОЛЕ",
-                    "• СТОЛКНОВЕНИЕ С КАМНЕМ = СМЕРТЬ",
-                    "• КАМНИ НЕ ДВИГАЮТСЯ",
-                    "• ТРЕБУЕТСЯ ТОЧНОЕ ПЛАНИРОВАНИЕ МАРШРУТА"
-                ],
-                en: [
-                    "• 8 STATIC STONES ON THE FIELD",
-                    "• CRASHING INTO A STONE = DEATH",
-                    "• STONES DO NOT MOVE",
-                    "• REQUIRES PRECISE ROUTE PLANNING"
-                ]
-            },
-            3: { // ПРИЗРАК
-                ru: [
-                    "• ЗА ЗМЕЙКОЙ ОСТАЮТСЯ СЛЕДЫ",
-                    "• КАСАНИЕ СЛЕДА = СМЕРТЬ",
-                    "• СЛЕДЫ ИСЧЕЗАЮТ ЧЕРЕЗ 25 ТИКОВ",
-                    "• ТРЕБУЕТСЯ АККУРАТНОЕ МАНЕВРИРОВАНИЕ"
-                ],
-                en: [
-                    "• GHOST TRAILS REMAIN BEHIND",
-                    "• TOUCHING A TRAIL = DEATH",
-                    "• TRAILS DISAPPEAR AFTER 25 TICKS",
-                    "• REQUIRES CAREFUL MANEUVERING"
-                ]
-            },
-            4: { // ДВИЖ. КАМНИ
-                ru: [
-                    "• КАМНИ ПЕРЕМЕЩАЮТСЯ КАЖДЫЕ 15 ТИКОВ",
-                    "• ПЕРЕД ДВИЖЕНИЕМ КАМЕНЬ МИГАЕТ",
-                    "• ТРЕБУЕТ ПРОГНОЗИРОВАНИЯ ДВИЖЕНИЙ",
-                    "• ВЫЗОВ ДЛЯ ОПЫТНЫХ ИГРОКОВ"
-                ],
-                en: [
-                    "• STONES MOVE EVERY 15 TICKS",
-                    "• STONE FLASHES BEFORE MOVING",
-                    "• REQUIRES MOVEMENT PREDICTION",
-                    "• CHALLENGE FOR EXPERIENCED PLAYERS"
-                ]
-            },
-            5: { // ПРОТИВ ИИ
-                ru: [
-                    "• БИТВА ПРОТИВ ИСКУССТВЕННОГО ИНТЕЛЛЕКТА",
-                    "• КТО НАБЕРЁТ БОЛЬШЕ ОЧКОВ?",
-                    "• ИИ ИСПОЛЬЗУЕТ АЛГОРИТМ ПОИСКА ПУТИ",
-                    "• ПОБЕДА = ВЫШЕ СЧЁТ ЧЕМ У ИИ"
-                ],
-                en: [
-                    "• BATTLE AGAINST ARTIFICIAL INTELLIGENCE",
-                    "• WHO SCORES HIGHER?",
-                    "• AI USES PATHFINDING ALGORITHM",
-                    "• VICTORY = SCORE HIGHER THAN AI"
-                ]
-            },
-            6: { // НА ВРЕМЯ
-                ru: [
-                    "• 60 СЕКУНД НА ВЫПОЛНЕНИЕ",
-                    "• КАЖДАЯ ЕДА +5 СЕКУНД",
-                    "• ПРИ 10 СЕКУНДАХ ЭКРАН МИГАЕТ",
-                    "• ВРЕМЯ = ГЛАВНЫЙ ВРАГ"
-                ],
-                en: [
-                    "• 60 SECOND TIME LIMIT",
-                    "• EACH FOOD +5 SECONDS",
-                    "• SCREEN FLASHES AT 10 SECONDS",
-                    "• TIME IS YOUR MAIN ENEMY"
-                ]
-            },
-            7: { // БЕГУЩАЯ ЕДА
-                ru: [
-                    "• ЕДА ПЕРЕМЕЩАЕТСЯ КАЖДЫЕ 3 СЕКУНДЫ",
-                    "• НУЖНО БЫТЬ БЫСТРЕЕ ЕДЫ",
-                    "• ДОБАВЛЯЕТ ЭЛЕМЕНТ ХАОСА",
-                    "• ТРЕБУЕТ БЫСТРОЙ РЕАКЦИИ"
-                ],
-                en: [
-                    "• FOOD MOVES EVERY 3 SECONDS",
-                    "• NEED TO BE FASTER THAN FOOD",
-                    "• ADDS CHAOS ELEMENT",
-                    "• REQUIRES FAST REACTION"
-                ]
-            },
-            8: { // СБОР МОНЕТ
-                ru: [
-                    "• СОБИРАЙТЕ ЗОЛОТЫЕ МОНЕТЫ (+1)",
-                    "• ЗМЕЙКА РАСТЁТ ПРИ СБОРЕ МОНЕТ",
-                    "• ЕДА ОТСУТСТВУЕТ НА ПОЛЕ",
-                    "• 30 МОНЕТ НА ПОЛЕ, ОБНОВЛЯЮТСЯ",
-                    "• СТЕНЫ РАБОТАЮТ КАК В КЛАССИКЕ"
-                ],
-                en: [
-                    "• COLLECT GOLD COINS (+1 EACH)",
-                    "• SNAKE GROWS WHEN COLLECTING COINS",
-                    "• NO FOOD ON THE FIELD",
-                    "• 30 COINS ON FIELD, REGENERATE",
-                    "• WALLS WORK LIKE IN CLASSIC MODE"
-                ]
-            },
-            9: { // ТЕЛЕПОРТЫ
-                ru: [
-                    "• 2 ПОРТАЛА НА ПОЛЕ",
-                    "• ВХОД В ОДИН = ТЕЛЕПОРТ В ДРУГОЙ",
-                    "• ПОРТАЛЫ ПЕРЕМЕЩАЮТСЯ КАЖДЫЕ 5 СЕКУНД",
-                    "• ВИЗУАЛЬНЫЙ И ЗВУКОВОЙ ЭФФЕКТ",
-                    "• СТЕНЫ ТЕЛЕПОРТИРУЮТ КАК В КЛАССИКЕ"
-                ],
-                en: [
-                    "• 2 PORTALS ON THE FIELD",
-                    "• ENTER ONE = TELEPORT TO OTHER",
-                    "• PORTALS MOVE EVERY 5 SECONDS",
-                    "• VISUAL AND SOUND EFFECT",
-                    "• WALLS WRAP LIKE IN CLASSIC MODE"
-                ]
-            }
-        };
-
-        const details = modeDetails[modeIdx] || { ru: [], en: [] };
-        const detailLines = this.game.currentLang === "RU" ? details.ru : details.en;
+        // Маппинг индексов режимов на ключи в i18n
+        const modeKeys = ['classic', 'walls', 'stones', 'ghost', 'movingStones', 'vsAI', 'timeMode', 'rushMode', 'coinCollector', 'portals'];
+        const modeKey = modeKeys[modeIdx] || 'classic';
+        const detailLines = t.modeDetails && t.modeDetails[modeKey] ? t.modeDetails[modeKey] : [];
         
         ctx.fillStyle = this.game.isDarkTheme ? "#161b22" : "#2b3a4a";
         ctx.fillRect(20, 10, 360, 370);
@@ -510,33 +397,31 @@ export class MenuDrawer {
         ctx.textAlign = "center";
         ctx.fillText(`${t.modeInfoCurrent} ${modeName}`, 200, 75);
         
+        // Описание режима с переносом строк
         ctx.font = "8px 'Press Start 2P'";
-        ctx.fillStyle = this.game.isDarkTheme ? "#8b949e" : "#2b3a4a";
-        ctx.textAlign = "left";
-        
-        // Описание режима (первая строка)
         ctx.fillStyle = this.game.isDarkTheme ? "#58a6ff" : "#4a90e2";
         ctx.textAlign = "center";
-        ctx.fillText(modeDesc, 200, 100);
-        ctx.fillStyle = this.game.isDarkTheme ? "#8b949e" : "#2b3a4a";
-        ctx.textAlign = "left";
+        
+        // Разбиваем длинный текст на строки
+        const maxWidth = 300;
+        const descLines = this.wrapText(modeDesc, maxWidth, ctx);
+        
+        let y = 100;
+        for (let line of descLines) {
+            ctx.fillText(line, 200, y);
+            y += 18;
+        }
         
         // Детальная информация
-        let y = 120;
+        y = y + 10;
+        ctx.textAlign = "left";
         ctx.font = "7px 'Press Start 2P'";
+        
         for (let line of detailLines) {
             ctx.fillStyle = this.game.isDarkTheme ? "#c9d1d9" : "#2b3a4a";
             ctx.fillText(line, 35, y);
             y += 20;
-            if (y > 340) break;
-        }
-        
-        // Подсказка для скролла если нужно
-        if (detailLines.length > 10) {
-            ctx.fillStyle = this.game.isDarkTheme ? "#484f58" : "#6c7d93";
-            ctx.font = "6px 'Press Start 2P'";
-            ctx.textAlign = "center";
-            ctx.fillText("▼ ПРОКРУТКА ВНИЗ ▼", 200, 345);
+            if (y > 345) break;
         }
         
         ctx.fillStyle = "#ffffff";
