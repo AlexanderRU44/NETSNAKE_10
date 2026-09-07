@@ -67,6 +67,6 @@ document.body.addEventListener('click', () => {
 
 // Запуск игры
 game.generateObstacles();
-game.loadBestSingleScore();
+game.loadBestSingleScore(); // Исправлено: вызываем метод напрямую
 game.updateTicker();
 game.updateHUD();
