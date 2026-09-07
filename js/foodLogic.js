@@ -11,6 +11,7 @@ export class FoodLogic {
     }
 
     generateFood() {
+        // В режиме сбора монет еда не генерируется
         if (this.game.currentModeIdx === 8) return;
         
         const maxAttempts = 100;
@@ -38,6 +39,12 @@ export class FoodLogic {
                     if (this.game.aiOpponent.snake[i].x === x && this.game.aiOpponent.snake[i].y === y) { occupied = true; break; }
                 }
             }
+            // Проверка на монеты в режиме монет
+            if (!occupied && this.game.currentModeIdx === 8 && this.game.specialModes.coins) {
+                for (let coin of this.game.specialModes.coins) {
+                    if (coin.x === x && coin.y === y) { occupied = true; break; }
+                }
+            }
             if (!occupied) {
                 this.game.food = { x, y };
                 if (this.game.currentModeIdx === 7) this.game.foodMoveTimer = this.game.foodMoveInterval;
@@ -50,6 +57,9 @@ export class FoodLogic {
     }
 
     setRandomFoodType() {
+        // В режиме монет не устанавливаем тип еды
+        if (this.game.currentModeIdx === 8) return;
+        
         const plannedType = this.game.screenEffects.getNewFoodType();
         if (plannedType === "SHRINK") {
             this.game.foodType = "SHRINK";
@@ -69,6 +79,7 @@ export class FoodLogic {
     }
 
     processFoodEaten(h, activeSpeed) {
+        // В режиме сбора монет еда не обрабатывается
         if (this.game.currentModeIdx === 8) return;
         
         if (this.game.currentModeIdx === 6 && this.game.timeRemaining > 0) {
@@ -170,12 +181,10 @@ export class FoodLogic {
         addFloatingScore(this.game.floatingScores, h.x, h.y, "SHIELD", this.game.currentLang);
         this.game.regularApplesStreak = 0;
         
-        // Очищаем предыдущий таймаут, если есть
         if (this.shieldTimeout) {
             clearTimeout(this.shieldTimeout);
         }
         
-        // Автоматически снять щит через 10 секунд
         this.shieldTimeout = setTimeout(() => {
             if (this.game.shieldActive) {
                 this.game.shieldActive = false;
