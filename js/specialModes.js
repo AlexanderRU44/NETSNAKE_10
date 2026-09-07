@@ -11,24 +11,30 @@ export class SpecialModes {
 
     generateCoins() {
         this.coins = [];
-        for (let i = 0; i < 15; i++) {
+        // Увеличиваем количество монет до 30 для более интересной игры
+        const coinCount = 30;
+        for (let i = 0; i < coinCount; i++) {
             let x, y, occupied;
+            let attempts = 0;
             do {
                 x = Math.floor(Math.random() * this.game.tileCount);
                 y = Math.floor(Math.random() * this.game.tileCount);
                 occupied = this.game.snake.some(p => p.x === x && p.y === y) ||
-                           (this.game.food && this.game.food.x === x && this.game.food.y === y) ||
                            this.coins.some(c => c.x === x && c.y === y) ||
                            (this.game.gift && this.game.gift.x === x && this.game.gift.y === y) ||
                            (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(p => p.x === x && p.y === y));
                 if (this.game.obstacles) occupied = occupied || this.game.obstacles.some(o => o.x === x && o.y === y);
                 if (this.game.ghostTrails) occupied = occupied || this.game.ghostTrails.some(g => g.x === x && g.y === y);
-                // Не размещать порталы на монетах
+                // Не размещать монеты на порталах
                 if (this.game.currentModeIdx === 9) {
                     occupied = occupied || this.portals.some(p => p.x === x && p.y === y);
                 }
+                attempts++;
+                if (attempts > 100) break;
             } while (occupied);
-            this.coins.push({ x, y, value: 1 });
+            if (attempts <= 100) {
+                this.coins.push({ x, y, value: 1 });
+            }
         }
     }
 
@@ -57,6 +63,10 @@ export class SpecialModes {
                 if (this.game.snake.length > 0) {
                     const head = this.game.snake[0];
                     if (Math.abs(x - head.x) + Math.abs(y - head.y) < 4) occupied = true;
+                }
+                // Не размещать порталы на монетах
+                if (this.game.currentModeIdx === 8) {
+                    occupied = occupied || this.game.specialModes.coins.some(c => c.x === x && c.y === y);
                 }
             } while (occupied);
             this.portals.push({ x, y });
@@ -93,11 +103,20 @@ export class SpecialModes {
         playSound("eat", this.game.soundEnabled);
         const value = this.coins[idx].value;
         this.coins.splice(idx, 1);
-        if (this.coins.length === 0) this.generateCoins();
+        // Когда все монеты собраны - генерируем новые
+        if (this.coins.length === 0) {
+            this.generateCoins();
+            // Добавляем эффект при обновлении монет
+            if (this.game.particleSystem) {
+                for (let coin of this.coins) {
+                    this.game.particleSystem.addExplosion(coin.x, coin.y, "#ffd700", 4);
+                }
+            }
+        }
         return value;
     }
 
-    // Новый метод для обновления позиций порталов
+    // Метод для обновления позиций порталов
     updatePortals(tickSpeed) {
         if (this.game.currentModeIdx !== 9 || this.portals.length !== 2) return;
         if (this.game.isPaused || this.game.gameOver) return;
