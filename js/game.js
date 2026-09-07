@@ -298,6 +298,11 @@ export class Game {
         this.goldDistanceBeforeDeath = null;
         this.shieldActive = false;
         
+        // Сброс таймера перемещения порталов
+        if (this.specialModes) {
+            this.specialModes.portalMoveTimer = 0;
+        }
+        
         if (this.gameMechanics) {
             this.gameMechanics.timeAccumulator = 0;
         }
@@ -533,6 +538,12 @@ export class Game {
 
         this.aiLogic.updateAIOpponentMoveTimer();
         this.moveSnake();
+
+        // Обновление порталов (режим 9)
+        if (this.currentModeIdx === 9) {
+            const tickSpeed = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
+            this.specialModes.updatePortals(tickSpeed);
+        }
 
         if (!this.gameOver) {
             this.checkCollision();
