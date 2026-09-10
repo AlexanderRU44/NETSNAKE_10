@@ -6,12 +6,11 @@ export class SpecialModes {
         this.coins = [];
         this.portals = [];
         this.portalMoveTimer = 0;
-        this.portalMoveInterval = 5000; // 5 секунд
+        this.portalMoveInterval = 5000;
     }
 
     generateCoins() {
         this.coins = [];
-        // Увеличиваем количество монет до 30 для более интересной игры
         const coinCount = 30;
         for (let i = 0; i < coinCount; i++) {
             let x, y, occupied;
@@ -25,7 +24,6 @@ export class SpecialModes {
                            (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(p => p.x === x && p.y === y));
                 if (this.game.obstacles) occupied = occupied || this.game.obstacles.some(o => o.x === x && o.y === y);
                 if (this.game.ghostTrails) occupied = occupied || this.game.ghostTrails.some(g => g.x === x && g.y === y);
-                // Не размещать монеты на порталах
                 if (this.game.currentModeIdx === 9) {
                     occupied = occupied || this.portals.some(p => p.x === x && p.y === y);
                 }
@@ -43,6 +41,8 @@ export class SpecialModes {
         this.portalMoveTimer = 0;
         for (let i = 0; i < 2; i++) {
             let x, y, occupied;
+            // FIX: добавлен счётчик попыток, чтобы избежать бесконечного цикла
+            let attempts = 0;
             do {
                 x = Math.floor(Math.random() * this.game.tileCount);
                 y = Math.floor(Math.random() * this.game.tileCount);
@@ -53,23 +53,39 @@ export class SpecialModes {
                            (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(p => p.x === x && p.y === y));
                 if (this.game.obstacles) occupied = occupied || this.game.obstacles.some(o => o.x === x && o.y === y);
                 if (this.game.ghostTrails) occupied = occupied || this.game.ghostTrails.some(g => g.x === x && g.y === y);
-                // Не размещать порталы слишком близко друг к другу
                 if (this.portals.length === 1) {
                     const dx = Math.abs(x - this.portals[0].x);
                     const dy = Math.abs(y - this.portals[0].y);
                     if (dx + dy < 5) occupied = true;
                 }
-                // Не размещать порталы слишком близко к голове змеи
                 if (this.game.snake.length > 0) {
                     const head = this.game.snake[0];
                     if (Math.abs(x - head.x) + Math.abs(y - head.y) < 4) occupied = true;
                 }
-                // Не размещать порталы на монетах
                 if (this.game.currentModeIdx === 8) {
                     occupied = occupied || this.game.specialModes.coins.some(c => c.x === x && c.y === y);
                 }
+                attempts++;
+                if (attempts > 100) break;
             } while (occupied);
-            this.portals.push({ x, y });
+
+            if (attempts <= 100) {
+                this.portals.push({ x, y });
+            } else {
+                // FIX: fallback — ищем любую свободную клетку
+                let placed = false;
+                for (let fx = 0; fx < this.game.tileCount && !placed; fx++) {
+                    for (let fy = 0; fy < this.game.tileCount && !placed; fy++) {
+                        const busy = this.game.snake.some(p => p.x === fx && p.y === fy) ||
+                                     this.portals.some(p => p.x === fx && p.y === fy) ||
+                                     (this.game.obstacles && this.game.obstacles.some(o => o.x === fx && o.y === fy));
+                        if (!busy) {
+                            this.portals.push({ x: fx, y: fy });
+                            placed = true;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -103,10 +119,8 @@ export class SpecialModes {
         playSound("eat", this.game.soundEnabled);
         const value = this.coins[idx].value;
         this.coins.splice(idx, 1);
-        // Когда все монеты собраны - генерируем новые
         if (this.coins.length === 0) {
             this.generateCoins();
-            // Добавляем эффект при обновлении монет
             if (this.game.particleSystem) {
                 for (let coin of this.coins) {
                     this.game.particleSystem.addExplosion(coin.x, coin.y, "#ffd700", 4);
@@ -116,27 +130,23 @@ export class SpecialModes {
         return value;
     }
 
-    // Метод для обновления позиций порталов
     updatePortals(tickSpeed) {
         if (this.game.currentModeIdx !== 9 || this.portals.length !== 2) return;
         if (this.game.isPaused || this.game.gameOver) return;
-        
+
         this.portalMoveTimer += tickSpeed;
-        
+
         if (this.portalMoveTimer >= this.portalMoveInterval) {
             this.portalMoveTimer = 0;
             this.movePortals();
         }
     }
 
-    // Метод для перемещения порталов
     movePortals() {
         if (this.portals.length !== 2) return;
-        
-        // Сохраняем старые позиции для анимации
+
         const oldPortals = this.portals.map(p => ({...p}));
-        
-        // Генерируем новые позиции для каждого портала
+
         for (let i = 0; i < this.portals.length; i++) {
             let x, y, occupied;
             let attempts = 0;
@@ -149,13 +159,11 @@ export class SpecialModes {
                            (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(p => p.x === x && p.y === y));
                 if (this.game.obstacles) occupied = occupied || this.game.obstacles.some(o => o.x === x && o.y === y);
                 if (this.game.ghostTrails) occupied = occupied || this.game.ghostTrails.some(g => g.x === x && g.y === y);
-                // Не размещать портал на другом портале
                 if (i === 0) {
                     occupied = occupied || (this.portals[1] && this.portals[1].x === x && this.portals[1].y === y);
                 } else {
                     occupied = occupied || (this.portals[0] && this.portals[0].x === x && this.portals[0].y === y);
                 }
-                // Не размещать слишком близко к другому порталу
                 if (i === 1 && this.portals.length > 0) {
                     const otherPortal = this.portals[0];
                     if (otherPortal) {
@@ -164,7 +172,6 @@ export class SpecialModes {
                         if (dx + dy < 5) occupied = true;
                     }
                 }
-                // Не размещать слишком близко к голове змеи
                 if (this.game.snake.length > 0) {
                     const head = this.game.snake[0];
                     if (Math.abs(x - head.x) + Math.abs(y - head.y) < 4) occupied = true;
@@ -172,13 +179,12 @@ export class SpecialModes {
                 attempts++;
                 if (attempts > 100) break;
             } while (occupied);
-            
+
             if (attempts <= 100) {
                 this.portals[i] = { x, y };
             }
         }
-        
-        // Показываем эффект перемещения
+
         if (this.game.particleSystem) {
             for (let p of oldPortals) {
                 this.game.particleSystem.addExplosion(p.x, p.y, "#8a2be2", 8);
@@ -187,12 +193,9 @@ export class SpecialModes {
                 this.game.particleSystem.addExplosion(p.x, p.y, "#4b0082", 8);
             }
         }
-        
-        // Звук перемещения порталов
+
         playSound("foodMove", this.game.soundEnabled);
-        
-        // Добавляем всплывающую надпись
-        const t = this.game.i18n[this.game.currentLang];
+
         for (let p of this.portals) {
             addFloatingScore(this.game.floatingScores, p.x, p.y, "PORTAL!", this.game.currentLang);
         }
