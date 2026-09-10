@@ -10,15 +10,23 @@ export class FoodLogic {
         this.shieldTimeout = null;
     }
 
+    // FIX: новый метод для сброса таймера щита при перезапуске игры
+    resetShield() {
+        if (this.shieldTimeout) {
+            clearTimeout(this.shieldTimeout);
+            this.shieldTimeout = null;
+        }
+        this.game.shieldActive = false;
+    }
+
     generateFood() {
-        // В режиме сбора монет еда не генерируется
         if (this.game.currentModeIdx === 8) return;
-        
+
         const maxAttempts = 100;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const x = Math.floor(Math.random() * this.game.tileCount);
             const y = Math.floor(Math.random() * this.game.tileCount);
-            
+
             let occupied = false;
             for (let i = 0; i < this.game.snake.length; i++) {
                 if (this.game.snake[i].x === x && this.game.snake[i].y === y) { occupied = true; break; }
@@ -39,7 +47,6 @@ export class FoodLogic {
                     if (this.game.aiOpponent.snake[i].x === x && this.game.aiOpponent.snake[i].y === y) { occupied = true; break; }
                 }
             }
-            // Проверка на монеты в режиме монет
             if (!occupied && this.game.currentModeIdx === 8 && this.game.specialModes.coins) {
                 for (let coin of this.game.specialModes.coins) {
                     if (coin.x === x && coin.y === y) { occupied = true; break; }
@@ -57,9 +64,8 @@ export class FoodLogic {
     }
 
     setRandomFoodType() {
-        // В режиме монет не устанавливаем тип еды
         if (this.game.currentModeIdx === 8) return;
-        
+
         const plannedType = this.game.screenEffects.getNewFoodType();
         if (plannedType === "SHRINK") {
             this.game.foodType = "SHRINK";
@@ -79,27 +85,26 @@ export class FoodLogic {
     }
 
     processFoodEaten(h, activeSpeed) {
-        // В режиме сбора монет еда не обрабатывается
         if (this.game.currentModeIdx === 8) return;
-        
+
         if (this.game.currentModeIdx === 6 && this.game.timeRemaining > 0) {
             this.game.timeRemaining += 5;
             if (this.game.timeRemaining > 99) this.game.timeRemaining = 99;
             playSound("timeBonus", this.game.soundEnabled);
             this.game.updateHUD();
         }
-        
+
         if (this.game.currentModeIdx === 7 && this.game.timeRemaining > 0) {
             this.game.timeRemaining += 3;
             if (this.game.timeRemaining > 99) this.game.timeRemaining = 99;
             playSound("timeBonus", this.game.soundEnabled);
             this.game.updateHUD();
         }
-        
+
         if (this.game.foodType !== "REGULAR" && this.game.bonusTimer > 0 && this.game.bonusTimer < (activeSpeed * 5)) {
             unlockAchievement("hawkTactics", achievements);
         }
-        
+
         if (this.game.foodType === "REGULAR") {
             this.processRegularFood(h);
         } else if (this.game.foodType === "BIG") {
@@ -111,11 +116,11 @@ export class FoodLogic {
         } else if (this.game.foodType === "SHIELD") {
             this.processShieldFood(h);
         }
-        
-        checkScoreTasks(this.game.score, tasks, (id, tasksObj) => completeTask(id, tasksObj, 
-            (type) => playSound(type, this.game.soundEnabled), () => this.game.spawnGift()), 
+
+        checkScoreTasks(this.game.score, tasks, (id, tasksObj) => completeTask(id, tasksObj,
+            (type) => playSound(type, this.game.soundEnabled), () => this.game.spawnGift()),
             (id, ach) => unlockAchievement(id, ach), achievements);
-        
+
         if (this.game.foodType !== "TURBO" && this.game.foodType !== "SHIELD") {
             this.game.foodType = "REGULAR";
             if (!this.game.isTurboActive) this.game.timerContainer.style.visibility = "hidden";
@@ -180,11 +185,11 @@ export class FoodLogic {
         this.game.particleSystem.addExplosion(h.x, h.y, "#1e88e5", 10);
         addFloatingScore(this.game.floatingScores, h.x, h.y, "SHIELD", this.game.currentLang);
         this.game.regularApplesStreak = 0;
-        
+
         if (this.shieldTimeout) {
             clearTimeout(this.shieldTimeout);
         }
-        
+
         this.shieldTimeout = setTimeout(() => {
             if (this.game.shieldActive) {
                 this.game.shieldActive = false;
