@@ -115,7 +115,7 @@ export class Game {
         this.victoryFlag = false;
 
         this.modesScrollY = 0;
-        
+
         this.shieldActive = false;
         this.particleSystem = new ParticleSystem(this);
 
@@ -142,8 +142,7 @@ export class Game {
         this.gameMechanics = new GameMechanics(this);
 
         this.aboutLogic.loadAboutText();
-        
-        // Исправленные методы
+
         this.loadTopTen = async () => {
             await this.leaderboard.loadTopTen();
             this.globalTopTen = this.leaderboard.globalTopTen;
@@ -213,7 +212,7 @@ export class Game {
         } else if (this.currentScreen !== "MAIN") {
             modeTag = ` [${t.gameModes[this.currentModeIdx]}]`;
         }
-        
+
         let shieldTag = this.shieldActive ? " [SHIELD]" : "";
 
         this.scoreElement.innerText = `${t.score}:${this.score}${aiTag}${modeTag}${shieldTag}`;
@@ -238,15 +237,15 @@ export class Game {
         this.gameOver = true;
         this.isPaused = true;
         this.isTurboActive = false;
-        
+
         if (victory && this.currentModeIdx === 5) {
             this.victoryFlag = true;
         } else {
             this.victoryFlag = false;
         }
-        
+
         this.currentScreen = "MAIN";
-        
+
         this.mainMenuSelection = 0;
         this.mainMenuScrollY = 0;
         this.timeModeActive = false;
@@ -254,16 +253,16 @@ export class Game {
         localStorage.setItem("snake_total_games_played", this.totalGamesPlayed);
         if (this.totalGamesPlayed >= 5) unlockAchievement("survivor", achievements);
         if (this.currentSpeedMode === 2) unlockAchievement("speedDemon", achievements);
-        
+
         if (this.goldDistanceBeforeDeath !== null && this.goldDistanceBeforeDeath === 1 && this.foodType === "BIG") {
             unlockAchievement("greed", achievements);
         }
         this.goldDistanceBeforeDeath = null;
-        
+
         this.updateHUD();
         this.sendScoreToFirebase(this.score);
     }
-    
+
     reset() {
         this.gift = null;
         this.goldFoodEaten = false;
@@ -296,13 +295,14 @@ export class Game {
         this.timeWarningFlash = false;
         this.victoryFlag = false;
         this.goldDistanceBeforeDeath = null;
-        this.shieldActive = false;
-        
-        // Сброс таймера перемещения порталов
+
+        // FIX: корректный сброс щита + очистка таймера
+        this.foodLogic.resetShield();
+
         if (this.specialModes) {
             this.specialModes.portalMoveTimer = 0;
         }
-        
+
         if (this.gameMechanics) {
             this.gameMechanics.timeAccumulator = 0;
         }
@@ -310,11 +310,9 @@ export class Game {
         this.specialModes.reset();
 
         this.screenEffects.generateNextFoodType();
-        // В режиме сбора монет (индекс 8) еда не генерируется
         if (this.currentModeIdx !== 8) {
             this.generateFood();
         } else {
-            // В режиме монет устанавливаем food в null или скрываем
             this.food = null;
         }
         this.generateObstacles();
@@ -324,13 +322,13 @@ export class Game {
             this.aiOpponent = null;
             this.aiOpponentScore = 0;
         }
-        
+
         if (this.soundEnabled) {
             startBackgroundMusic();
         } else {
             stopBackgroundMusic();
         }
-        
+
         this.updateTicker();
         this.updateHUD();
         this.cheatSequence = [];
@@ -361,7 +359,7 @@ export class Game {
 
     handleInput(act) {
         if (this.currentScreen === "EDIT_NAME" || this.currentScreen === "INTRO") return;
-        
+
         if (!this.isPaused) {
             this.cheatSequence.push(act);
             if (this.cheatSequence.length > 3) this.cheatSequence.shift();
@@ -384,13 +382,13 @@ export class Game {
                 let max = this.gameOver ? 8 : 9;
                 if (act === "UP") this.mainMenuSelection = (this.mainMenuSelection <= 0) ? max : this.mainMenuSelection - 1;
                 if (act === "DOWN") this.mainMenuSelection = (this.mainMenuSelection >= max) ? 0 : this.mainMenuSelection + 1;
-            } 
+            }
             else if (this.currentScreen === "MODES") {
                 const maxMode = this.i18n[this.currentLang].gameModes.length - 1;
                 const visibleHeight = 240;
                 const itemHeight = 30;
                 const maxScroll = Math.max(0, (maxMode + 1) * itemHeight - visibleHeight);
-                
+
                 if (act === "UP") {
                     this.modesMenuSelection = (this.modesMenuSelection <= 0) ? maxMode : this.modesMenuSelection - 1;
                     let targetY = this.modesMenuSelection * itemHeight;
@@ -400,7 +398,7 @@ export class Game {
                         this.modesScrollY = targetY - (visibleHeight - itemHeight);
                     }
                     this.modesScrollY = Math.max(0, Math.min(this.modesScrollY, maxScroll));
-                } 
+                }
                 else if (act === "DOWN") {
                     this.modesMenuSelection = (this.modesMenuSelection >= maxMode) ? 0 : this.modesMenuSelection + 1;
                     let targetY = this.modesMenuSelection * itemHeight;
@@ -416,15 +414,15 @@ export class Game {
                 let max = 5;
                 if (act === "UP") this.settingsMenuSelection = (this.settingsMenuSelection <= 0) ? max : this.settingsMenuSelection - 1;
                 if (act === "DOWN") this.settingsMenuSelection = (this.settingsMenuSelection >= max) ? 0 : this.settingsMenuSelection + 1;
-            } 
+            }
             else if (this.currentScreen === "TASKS") {
                 if (act === "UP") this.tasksScrollY = Math.max(0, this.tasksScrollY - 20);
                 if (act === "DOWN") this.tasksScrollY = Math.min(this.maxTasksScrollY, this.tasksScrollY + 20);
-            } 
+            }
             else if (this.currentScreen === "ABOUT") {
                 if (act === "UP") this.aboutScrollY = Math.max(0, this.aboutScrollY - 15);
                 if (act === "DOWN") this.aboutScrollY = Math.min(this.maxAboutScrollY, this.aboutScrollY + 15);
-            } 
+            }
             else if (this.currentScreen === "ACHIEVEMENTS") {
                 if (act === "UP") this.achScrollY = Math.max(0, this.achScrollY - 20);
                 if (act === "DOWN") this.achScrollY = Math.min(this.maxAchScrollY, this.achScrollY + 20);
@@ -475,7 +473,6 @@ export class Game {
             if (this.aiOpponent && this.currentModeIdx === 5) {
                 this.renderer.drawAIOpponent(this.aiOpponent.snake);
             }
-            // Еда отрисовывается только не в режиме монет
             if (this.currentModeIdx !== 8 && this.food) {
                 this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             }
@@ -502,7 +499,6 @@ export class Game {
         this.updateTimeMode();
         this.moveFoodInRushMode();
 
-        // Таймеры для бонусной еды только не в режиме монет
         if (this.currentModeIdx !== 8) {
             if (this.foodType === "BIG" || this.foodType === "SHRINK" || this.foodType === "TURBO" || this.foodType === "SHIELD") {
                 let currentTickSpeed = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
@@ -527,7 +523,6 @@ export class Game {
                 this.timerContainer.style.visibility = "hidden";
             }
         } else {
-            // В режиме монет скрываем таймер
             this.timerContainer.style.visibility = "hidden";
         }
 
@@ -554,7 +549,6 @@ export class Game {
         this.aiLogic.updateAIOpponentMoveTimer();
         this.moveSnake();
 
-        // Обновление порталов (режим 9)
         if (this.currentModeIdx === 9) {
             const tickSpeed = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
             this.specialModes.updatePortals(tickSpeed);
@@ -567,7 +561,6 @@ export class Game {
             if (this.aiOpponent && this.currentModeIdx === 5) {
                 this.renderer.drawAIOpponent(this.aiOpponent.snake);
             }
-            // Еда отрисовывается только не в режиме монет
             if (this.currentModeIdx !== 8 && this.food) {
                 this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             }
@@ -589,8 +582,7 @@ export class Game {
     updateMiniDisplay() {
         this.screenEffects.updateMiniDisplay();
     }
-    
-    // Метод для загрузки лучшего рекорда
+
     loadBestSingleScore() {
         this.leaderboard.loadBestSingleScore();
     }
