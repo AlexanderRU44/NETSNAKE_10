@@ -18,12 +18,14 @@ export class NameInputManager {
     }
 
     saveNameInput() {
+        // FIX: защита от отсутствия DOM-элемента
+        if (!this.nameInput) return;
         let val = this.nameInput.value.trim().toUpperCase();
         val = val.replace(/[^A-ZА-Я0-9_]/g, '');
         if (val === "") val = "PLAYER";
         this.game.playerName = val.substring(0, 8);
         localStorage.setItem("snake_player_name", this.game.playerName);
-        this.nameOverlay.style.display = "none";
+        if (this.nameOverlay) this.nameOverlay.style.display = "none";
         this.game.currentScreen = "SETTINGS";
         this.game.updateHUD();
     }
