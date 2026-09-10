@@ -8,6 +8,9 @@ export class MenuDrawer {
         this.ctx = ctx;
         this.game = game;
         this.githubLinkRect = null;
+        // FIX: кэш для загрузки текста "О игре" — чтобы не вызывать каждый кадр
+        this._aboutLoaded = false;
+        this._aboutLang = null;
     }
 
     // Вспомогательный метод для переноса текста
@@ -16,7 +19,7 @@ export class MenuDrawer {
         const words = text.split(' ');
         const lines = [];
         let currentLine = '';
-        
+
         for (let word of words) {
             let testLine = currentLine ? currentLine + ' ' + word : word;
             let metrics = ctx.measureText(testLine);
@@ -34,7 +37,7 @@ export class MenuDrawer {
     drawPixelMenu(title) {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
-        
+
         ctx.fillStyle = this.game.isDarkTheme ? "#161b22" : "#2b3a4a";
         ctx.fillRect(20, 25, 360, 350);
         ctx.strokeStyle = "#ffffff";
@@ -47,13 +50,13 @@ export class MenuDrawer {
         ctx.fillRect(40, 85, 320, 2);
         ctx.font = "11px 'Press Start 2P'";
         ctx.textAlign = "left";
-        
+
         if (this.game.currentScreen === "MAIN") {
             ctx.save();
             ctx.beginPath();
             ctx.rect(30, 90, 340, 260);
             ctx.clip();
-            let options = this.game.gameOver ? 
+            let options = this.game.gameOver ?
                 [t.newGame, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu] :
                 [t.continue, t.newGame, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu];
             let expectedY = this.game.mainMenuSelection * 34;
@@ -107,7 +110,7 @@ export class MenuDrawer {
     drawModesScreen() {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
-        
+
         ctx.fillStyle = this.game.isDarkTheme ? "#161b22" : "#2b3a4a";
         ctx.fillRect(20, 25, 360, 350);
         ctx.strokeStyle = "#ffffff";
@@ -120,12 +123,12 @@ export class MenuDrawer {
         ctx.fillRect(40, 85, 320, 2);
         ctx.font = "10px 'Press Start 2P'";
         ctx.textAlign = "left";
-        
+
         ctx.save();
         ctx.beginPath();
         ctx.rect(30, 90, 340, 240);
         ctx.clip();
-        
+
         const maxScroll = Math.max(0, t.gameModes.length * 30 - 240);
         for (let idx = 0; idx < t.gameModes.length; idx++) {
             let y = 115 + (idx * 30) - (this.game.modesScrollY || 0);
@@ -133,9 +136,9 @@ export class MenuDrawer {
             let active = (this.game.currentModeIdx === idx) ? "[X]" : "[ ]";
             ctx.fillText(`${selected} ${active} ${t.gameModes[idx]}`, 42, y);
         }
-        
+
         ctx.restore();
-        
+
         if (maxScroll > 0) {
             ctx.fillStyle = this.game.isDarkTheme ? "#21262d" : "#1b2530";
             ctx.fillRect(355, 95, 4, 235);
@@ -143,7 +146,7 @@ export class MenuDrawer {
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(355, 95 + scrollPercent * 190, 4, 45);
         }
-        
+
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.font = "10px 'Press Start 2P'";
@@ -217,7 +220,7 @@ export class MenuDrawer {
             ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.taskList[key]}`, 42, y);
             ctx.font = "7.5px 'Press Start 2P'";
             ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
-            
+
             const descText = t.taskList[key + "Desc"] || "";
             const maxWidth = 280;
             const descLines = this.wrapText(descText, maxWidth, ctx);
@@ -276,7 +279,7 @@ export class MenuDrawer {
                 ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.achList[key]}`, 42, y);
                 ctx.font = "7px 'Press Start 2P'";
                 ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
-                
+
                 const descText = t.achList[key + "Desc"] || "";
                 const maxWidth = 280;
                 const descLines = this.wrapText(descText, maxWidth, ctx);
@@ -299,7 +302,15 @@ export class MenuDrawer {
     drawAboutScreen() {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
-        if (this.game.aboutLogic) this.game.aboutLogic.loadAboutText();
+
+        // FIX: загружаем текст один раз при входе на экран или смене языка,
+        // а не каждый кадр (раньше вызов был в теле метода).
+        if (!this._aboutLoaded || this._aboutLang !== this.game.currentLang) {
+            if (this.game.aboutLogic) this.game.aboutLogic.loadAboutText();
+            this._aboutLoaded = true;
+            this._aboutLang = this.game.currentLang;
+        }
+
         ctx.fillStyle = this.game.isDarkTheme ? "#161b22" : "#2b3a4a";
         ctx.fillRect(20, 10, 360, 380);
         ctx.strokeStyle = "#ffffff";
@@ -343,7 +354,7 @@ export class MenuDrawer {
             });
         }
         if (!this.githubLinkRect) {
-            const githubText = this.game.currentLang === "RU" 
+            const githubText = this.game.currentLang === "RU"
                 ? "GITHUB: https://github.com/AlexanderRU44/netsnake10"
                 : "GITHUB: https://github.com/AlexanderRU44/netsnake10";
             const y = 85 + (textLines.length * 22) - this.game.aboutScrollY;
@@ -373,12 +384,12 @@ export class MenuDrawer {
         const modeIdx = this.game.currentModeIdx;
         const modeName = t.gameModes[modeIdx];
         const modeDesc = t.modeDescriptions[modeIdx] || t.unknownTask;
-        
+
         // Маппинг индексов режимов на ключи в i18n
         const modeKeys = ['classic', 'walls', 'stones', 'ghost', 'movingStones', 'vsAI', 'timeMode', 'rushMode', 'coinCollector', 'portals'];
         const modeKey = modeKeys[modeIdx] || 'classic';
         const detailLines = t.modeDetails && t.modeDetails[modeKey] ? t.modeDetails[modeKey] : [];
-        
+
         ctx.fillStyle = this.game.isDarkTheme ? "#161b22" : "#2b3a4a";
         ctx.fillRect(20, 10, 360, 370);
         ctx.strokeStyle = "#ffffff";
@@ -389,39 +400,38 @@ export class MenuDrawer {
         ctx.textAlign = "center";
         ctx.fillText(t.modeInfoTitle, 200, 42);
         ctx.fillRect(40, 52, 320, 2);
-        
+
         ctx.font = "10px 'Press Start 2P'";
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.fillText(`${t.modeInfoCurrent} ${modeName}`, 200, 75);
-        
-        // Описание режима с переносом строк - ИСПОЛЬЗУЕМ ПОЛНЫЙ ТЕКСТ
+
+        // Описание режима с переносом строк
         ctx.font = "8px 'Press Start 2P'";
         ctx.fillStyle = this.game.isDarkTheme ? "#58a6ff" : "#4a90e2";
         ctx.textAlign = "center";
-        
-        // Разбиваем длинный текст на строки
+
         const maxWidth = 300;
         const descLines = this.wrapText(modeDesc, maxWidth, ctx);
-        
+
         let y = 100;
         for (let line of descLines) {
             ctx.fillText(line, 200, y);
             y += 18;
         }
-        
-        // Детальная информация - ПОЛНЫЙ СПИСОК
+
+        // Детальная информация
         y = y + 10;
         ctx.textAlign = "left";
         ctx.font = "7px 'Press Start 2P'";
-        
+
         for (let line of detailLines) {
             ctx.fillStyle = this.game.isDarkTheme ? "#c9d1d9" : "#2b3a4a";
             ctx.fillText(line, 35, y);
             y += 20;
             if (y > 345) break;
         }
-        
+
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.font = "10px 'Press Start 2P'";
@@ -429,10 +439,10 @@ export class MenuDrawer {
     }
 
     checkGithubClick(mouseX, mouseY) {
-        if (this.githubLinkRect && 
-            mouseX >= this.githubLinkRect.x && 
+        if (this.githubLinkRect &&
+            mouseX >= this.githubLinkRect.x &&
             mouseX <= this.githubLinkRect.x + this.githubLinkRect.width &&
-            mouseY >= this.githubLinkRect.y && 
+            mouseY >= this.githubLinkRect.y &&
             mouseY <= this.githubLinkRect.y + this.githubLinkRect.height) {
             window.open(this.githubLinkRect.url, '_blank');
             return true;
