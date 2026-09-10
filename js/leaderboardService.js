@@ -19,7 +19,10 @@ export class LeaderboardService {
                 timestamp: new Date()
             });
             await this.loadBestSingleScore();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            // FIX: логируем ошибку, но не роняем игру
+            console.error('sendScoreToFirebase error:', e);
+        }
         finally { this.game.isGameSubmitting = false; }
     }
 
@@ -29,9 +32,9 @@ export class LeaderboardService {
         this.game.updateHUD();
         try {
             const q = query(
-                collection(db, "global_leaderboard"), 
+                collection(db, "global_leaderboard"),
                 where("mode", "==", this.game.currentModeIdx),
-                orderBy("score", "desc"), 
+                orderBy("score", "desc"),
                 limit(1)
             );
             const querySnapshot = await getDocs(q);
@@ -43,8 +46,9 @@ export class LeaderboardService {
                 localStorage.setItem(`snake_best_player_mode_${this.game.currentModeIdx}`, this.game.bestPlayerName);
                 this.game.updateHUD();
             }
-        } catch (e) { 
-            console.error('Error loading best score:', e); 
+        } catch (e) {
+            // FIX: если Firestore недоступен (нет индекса и т.п.) — используем локальный рекорд
+            console.warn('loadBestSingleScore: используем локальный рекорд.', e?.message || e);
         }
     }
 
@@ -53,16 +57,21 @@ export class LeaderboardService {
         this.game.isLoadingLeaderboard = true;
         try {
             const q = query(
-                collection(db, "global_leaderboard"), 
+                collection(db, "global_leaderboard"),
                 where("mode", "==", this.game.currentModeIdx),
-                orderBy("score", "desc"), 
+                orderBy("score", "desc"),
                 limit(10)
             );
             const querySnapshot = await getDocs(q);
             this.globalTopTen = [];
             querySnapshot.forEach((doc) => { this.globalTopTen.push(doc.data()); });
             this.game.globalTopTen = this.globalTopTen;
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            // FIX: не роняем игру если Firestore недоступен
+            console.error('loadTopTen error:', e);
+            this.globalTopTen = [];
+            this.game.globalTopTen = [];
+        }
         this.isLoadingLeaderboard = false;
         this.game.isLoadingLeaderboard = false;
     }
