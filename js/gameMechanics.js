@@ -14,14 +14,12 @@ export class GameMechanics {
         let dx = this.game.dx;
         let dy = this.game.dy;
         let head = { x: this.game.snake[0].x + dx, y: this.game.snake[0].y + dy };
-        
-        // Телепортация через стены (кроме режима 1)
+
         if (this.game.currentModeIdx !== 1) {
             head.x = (head.x + this.game.tileCount) % this.game.tileCount;
             head.y = (head.y + this.game.tileCount) % this.game.tileCount;
         }
-        
-        // Призрачные следы (режим 3)
+
         if (this.game.currentModeIdx === 3 && this.game.snake.length) {
             const tail = this.game.snake[this.game.snake.length - 1];
             this.game.ghostTrails.push({ x: tail.x, y: tail.y, ttl: 25 });
@@ -30,9 +28,9 @@ export class GameMechanics {
             this.game.ghostTrails[i].ttl--;
             if (this.game.ghostTrails[i].ttl <= 0) this.game.ghostTrails.splice(i, 1);
         }
-        
+
         this.game.snake.unshift(head);
-        
+
         // Подарок
         if (this.game.gift && head.x === this.game.gift.x && head.y === this.game.gift.y) {
             playSound("giftEat", this.game.soundEnabled);
@@ -43,28 +41,23 @@ export class GameMechanics {
             checkScoreTasks(this.game.score, tasks, (id, obj) => completeTask(id, obj, (t) => playSound(t, this.game.soundEnabled), () => this.game.spawnGift()), (id, ach) => unlockAchievement(id, ach), achievements);
             this.game.updateHUD();
         }
-        
-        // Сбор монет (режим 8) - змейка растёт!
+
+        // Сбор монет (режим 8)
         const coinValue = this.game.specialModes.collectCoin(head);
         if (coinValue > 0) {
             this.game.score += coinValue;
             this.game.particleSystem.addExplosion(head.x, head.y, "#ffd700", 6);
             addFloatingScore(this.game.floatingScores, head.x, head.y, `+${coinValue}`, this.game.currentLang);
-            // Змейка растёт при сборе монеты (добавляем сегмент)
-            // Уже добавлен head через unshift, поэтому просто не удаляем хвост
-            // Но нужно убедиться, что хвост не удаляется при сборе монеты
-            // Мы не удаляем хвост, так как уже сделали unshift
             this.game.updateHUD();
         }
-        
-        // Телепортация (режим 9) - проверяем до еды
+
+        // Телепортация (режим 9)
         const teleported = this.game.specialModes.teleportIfNeeded(head);
         if (teleported) {
             this.game.particleSystem.addTeleportParticles(head.x, head.y);
             head.x = teleported.x;
             head.y = teleported.y;
             this.game.snake[0] = head;
-            // После телепортации проверяем новую позицию на сбор монет/подарка
             if (this.game.gift && head.x === this.game.gift.x && head.y === this.game.gift.y) {
                 playSound("giftEat", this.game.soundEnabled);
                 this.game.score += 50;
@@ -81,9 +74,9 @@ export class GameMechanics {
                 this.game.updateHUD();
             }
         }
-        
-        // Еда (только не в режиме монет)
-        if (this.game.currentModeIdx !== 8 && head.x === this.game.food.x && head.y === this.game.food.y) {
+
+        // Еда — FIX: добавлена проверка this.game.food (в режиме монет food === null)
+        if (this.game.currentModeIdx !== 8 && this.game.food && head.x === this.game.food.x && head.y === this.game.food.y) {
             const speed = this.game.isTurboActive ? this.game.speeds[2] : this.game.speeds[this.game.currentSpeedMode];
             let partColor = "#ff4d4d";
             if (this.game.foodType === "BIG") partColor = "#ffb900";
@@ -93,17 +86,15 @@ export class GameMechanics {
             this.game.particleSystem.addExplosion(head.x, head.y, partColor, 10);
             this.game.foodLogic.processFoodEaten(head, speed);
         } else {
-            // Удаляем хвост только если не собрали монету и не съели еду
-            // В режиме монет хвост не удаляется (змейка растёт)
             if (this.game.currentModeIdx !== 8 || coinValue === 0) {
                 this.game.snake.pop();
             }
-            // Если собрали монету - хвост остаётся (уже добавлен head через unshift)
         }
     }
-    
+
     moveFoodInRushMode() {
         if (this.game.currentModeIdx !== 7) return;
+        if (!this.game.food) return; // FIX: защита
         this.game.foodMoveTimer -= this.game.isTurboActive ? this.game.speeds[2] : this.game.speeds[this.game.currentSpeedMode];
         if (this.game.foodMoveTimer <= 0) {
             playSound("foodMove", this.game.soundEnabled);
@@ -125,7 +116,7 @@ export class GameMechanics {
             this.game.foodMoveTimer = this.game.foodMoveInterval;
         }
     }
-    
+
     updateTimeMode() {
         if (this.game.currentModeIdx !== 6) return;
         if (this.game.isPaused) return;
