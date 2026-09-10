@@ -12,6 +12,7 @@ export class ObstacleManager {
             let obsX = Math.floor(Math.random() * this.game.tileCount);
             let obsY = Math.floor(Math.random() * this.game.tileCount);
             let distance = Math.abs(obsX - this.game.snake[0].x) + Math.abs(obsY - this.game.snake[0].y);
+            // FIX: food может быть null в режиме 8, добавлена защита
             let isOnFood = (this.game.food && obsX === this.game.food.x && obsY === this.game.food.y);
             let isOnSnake = this.game.snake.some(part => part.x === obsX && part.y === obsY);
             let isDuplicate = this.game.obstacles.some(o => o.x === obsX && o.y === obsY);
@@ -27,13 +28,13 @@ export class ObstacleManager {
         let validPositions = [];
         for (let x = 0; x < this.game.tileCount; x++) {
             for (let y = 0; y < this.game.tileCount; y++) {
-                let isOccupied = this.game.snake.some(part => part.x === x && part.y === y) || 
+                // FIX: защита от null food
+                let isOccupied = this.game.snake.some(part => part.x === x && part.y === y) ||
                                  this.game.obstacles.some(o => o.x === x && o.y === y) ||
                                  this.game.ghostTrails.some(g => g.x === x && g.y === y) ||
-                                 (this.game.food && this.game.food.x === x && this.game.food.y === y) || 
+                                 (this.game.food && this.game.food.x === x && this.game.food.y === y) ||
                                  (this.game.gift && this.game.gift.x === x && this.game.gift.y === y) ||
                                  (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(part => part.x === x && part.y === y));
-                // Дополнительная проверка - не перемещать камень слишком близко к голове змеи
                 const isTooClose = Math.abs(x - this.game.snake[0].x) + Math.abs(y - this.game.snake[0].y) <= 2;
                 if (!isOccupied && !isTooClose) {
                     validPositions.push({x, y});
@@ -49,10 +50,11 @@ export class ObstacleManager {
         let validPositions = [];
         for (let x = 0; x < this.game.tileCount; x++) {
             for (let y = 0; y < this.game.tileCount; y++) {
-                let isOccupied = this.game.snake.some(part => part.x === x && part.y === y) || 
+                // FIX: защита от null food
+                let isOccupied = this.game.snake.some(part => part.x === x && part.y === y) ||
                                  this.game.obstacles.some(o => o.x === x && o.y === y) ||
                                  this.game.ghostTrails.some(g => g.x === x && g.y === y) ||
-                                 (this.game.food && this.game.food.x === x && this.game.food.y === y) || 
+                                 (this.game.food && this.game.food.x === x && this.game.food.y === y) ||
                                  (this.game.gift && this.game.gift.x === x && this.game.gift.y === y) ||
                                  (this.game.aiOpponent && this.game.aiOpponent.snake && this.game.aiOpponent.snake.some(part => part.x === x && part.y === y));
                 if (!isOccupied) validPositions.push({x, y});
