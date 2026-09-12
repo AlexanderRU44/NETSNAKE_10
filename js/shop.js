@@ -3,11 +3,24 @@
 export const SHOP_ITEMS = [
     // === Скины ===
     {
+        id: 'skin_classic',
+        type: 'skin',
+        price: 0, // бесплатно, открыт по умолчанию
+        unlockedByDefault: true,
+        icon: '⚪',
+        colorIdx: 0,
+        nameRU: 'КЛАССИКА',
+        nameEN: 'CLASSIC',
+        descRU: 'Базовый цвет змейки',
+        descEN: 'Basic snake color'
+    },
+    {
         id: 'skin_green',
         type: 'skin',
         price: 100,
-        icon: '🐍',
-        colorIdx: 1, // индекс в snakeColors
+        unlockedByDefault: false,
+        icon: '🟢',
+        colorIdx: 1,
         nameRU: 'ЗЕЛЁНАЯ ЗМЕЙКА',
         nameEN: 'GREEN SNAKE',
         descRU: 'Классический зелёный цвет',
@@ -17,6 +30,7 @@ export const SHOP_ITEMS = [
         id: 'skin_blue',
         type: 'skin',
         price: 100,
+        unlockedByDefault: false,
         icon: '🔵',
         colorIdx: 2,
         nameRU: 'СИНЯЯ ЗМЕЙКА',
@@ -28,6 +42,7 @@ export const SHOP_ITEMS = [
         id: 'skin_ruby',
         type: 'skin',
         price: 150,
+        unlockedByDefault: false,
         icon: '🔴',
         colorIdx: 3,
         nameRU: 'РУБИНОВАЯ',
@@ -39,6 +54,7 @@ export const SHOP_ITEMS = [
         id: 'skin_rainbow',
         type: 'skin',
         price: 500,
+        unlockedByDefault: false,
         icon: '🌈',
         colorIdx: 4,
         nameRU: 'РАДУЖНАЯ',
@@ -47,7 +63,7 @@ export const SHOP_ITEMS = [
         descEN: 'Shimmering rainbow'
     },
 
-    // === Одноразовые бонусы (на 1 игру) ===
+    // === Одноразовые бонусы ===
     {
         id: 'boost_start',
         type: 'consumable',
@@ -97,8 +113,8 @@ export const SHOP_ITEMS = [
         icon: '🍀',
         nameRU: 'УДАЧА',
         nameEN: 'LUCK',
-        descRU: 'Редкая еда появляется чаще',
-        descEN: 'Rare food appears more often'
+        descRU: 'Рубины появляются чаще',
+        descEN: 'Rubies appear more often'
     },
     {
         id: 'perk_trail',
@@ -114,4 +130,8 @@ export const SHOP_ITEMS = [
 
 export function getItemById(id) {
     return SHOP_ITEMS.find(item => item.id === id) || null;
+}
+
+export function getSkinItemByColorIdx(colorIdx) {
+    return SHOP_ITEMS.find(item => item.type === 'skin' && item.colorIdx === colorIdx) || null;
 }
