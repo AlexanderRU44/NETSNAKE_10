@@ -11,9 +11,9 @@ body {
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    justify-content: center;          /* FIX: центрирование по вертикали */
+    justify-content: center;           /* FIX: центр по вертикали */
     min-height: 100vh; 
-    min-height: 100dvh;               /* корректная высота на мобильных */
+    min-height: 100dvh;
     margin: 0; 
     padding: 10px;
     overflow: hidden;
@@ -28,13 +28,11 @@ body {
     border-radius: 20px; 
     width: 100%; 
     max-width: 410px; 
-    max-height: 100dvh;
-    overflow-y: auto;
     display: flex; 
     flex-direction: column; 
     gap: 12px; 
     position: relative;
-    margin: 0 auto;                   /* центрирование по горизонтали */
+    margin: auto;                       /* FIX: центр по вертикали и горизонтали */
     transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
@@ -156,7 +154,7 @@ canvas {
     gap: 8px; 
     width: 100%; 
     max-width: 340px; 
-    margin: 5px auto 10px auto;   /* без margin-top: auto — джойстик идёт сразу за экраном */
+    margin: 5px auto 10px auto;
 }
 
 .btn {
