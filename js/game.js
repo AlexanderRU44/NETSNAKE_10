@@ -18,7 +18,6 @@ import { AnimationController } from './animationController.js';
 import { GameMechanics } from './gameMechanics.js';
 import { SpecialModes } from './specialModes.js';
 import { ParticleSystem } from './particleSystem.js';
-// === МАГАЗИН ===
 import { Currency } from './currency.js';
 import { ShopDrawer } from './shopDrawer.js';
 import { SHOP_ITEMS } from './shop.js';
@@ -27,6 +26,13 @@ import {
     maxBigFoodTime, maxShrinkTime, maxTurboTime, addFloatingScore,
     startBackgroundMusic, stopBackgroundMusic
 } from './utils.js';
+
+// === НАСТРОЙКИ РУБИНОВ ===
+const RUBY_SPAWN_INTERVAL_MIN = 8000;   // минимум мс между появлениями
+const RUBY_SPAWN_INTERVAL_MAX = 15000;  // максимум мс
+const RUBY_LIFETIME = 10000;            // 10 секунд на поле
+const RUBY_VALUE = 3;                   // сколько рубинов даёт один кристалл
+const RUBY_LUCK_CHANCE = 0.5;           // шанс спавна с перком "удача"
 
 export class Game {
     constructor(canvas, scoreElement, hiScoreElement, hudElement, timerContainer, timerBar, nameOverlay, nameInput, overlayLabel, btnSaveName) {
@@ -90,7 +96,10 @@ export class Game {
         this.totalGamesPlayed = parseInt(localStorage.getItem("snake_total_games_played") || "0");
         this.themeChangesCount = 0;
         this.currentScreen = "INTRO";
-        this.currentSnakeColorIdx = parseInt(localStorage.getItem("snake_color_idx") || "0");
+        // FIX: скин по умолчанию — только если куплен. Иначе classic (0).
+        const savedColorIdx = parseInt(localStorage.getItem("snake_color_idx") || "0");
+        const ownedSkin = this.currencyHasSkin(savedColorIdx);
+        this.currentSnakeColorIdx = ownedSkin ? savedColorIdx : 0;
         this.rainbowHue = 0;
         this.cheatSequence = [];
         this.targetCheat = ["UP", "UP", "DOWN"];
@@ -128,6 +137,11 @@ export class Game {
         this.shopDrawer = new ShopDrawer(this.ctx, this);
         this.shopSelection = 0;
         this.shopScrollY = 0;
+
+        // === РУБИНЫ НА ПОЛЕ ===
+        this.rubies = [];               // [{x, y, ttl}] — ttl в мс
+        this.rubySpawnTimer = 0;        // мс до следующего спавна
+        this.rubySpawnInterval = 0;     // текущий интервал
 
         this.specialModes = new SpecialModes(this);
         this.introScreen = new IntroScreen();
@@ -172,6 +186,15 @@ export class Game {
         this.applyTheme();
         this.initThemeListener();
         this.animationController.updateTicker();
+    }
+
+    // Проверка, куплен ли скин (соответствует colorIdx)
+    currencyHasSkin(colorIdx) {
+        if (colorIdx === 0) return true; // CLASSIC всегда открыт
+        const skinId = `skin_${['classic','green','blue','ruby','rainbow'][colorIdx]}`;
+        // fallback на случай, если currency ещё не создан
+        const purchases = JSON.parse(localStorage.getItem('snake_purchases') || '{}');
+        return !!purchases[skinId];
     }
 
     getEffectiveTheme() {
@@ -224,9 +247,9 @@ export class Game {
         }
 
         let shieldTag = this.shieldActive ? " [SHIELD]" : "";
-        let crystalTag = ` | ${this.currency.crystals}💎`;
+        // FIX: убрали кристаллы из HUD
 
-        this.scoreElement.innerText = `${t.score}:${this.score}${aiTag}${modeTag}${shieldTag}${crystalTag}`;
+        this.scoreElement.innerText = `${t.score}:${this.score}${aiTag}${modeTag}${shieldTag}`;
 
         if (this.bestPlayerName === "---") {
             this.hiScoreElement.innerText = `${t.hi}: ${t.loading}`;
@@ -243,6 +266,71 @@ export class Game {
         this.collisionChecker.checkCollision();
     }
 
+    // === СПАВН РУБИНОВ ===
+    scheduleNextRubySpawn() {
+        // Базовая задержка + перк "удача" уменьшает её вдвое
+        let minInterval = RUBY_SPAWN_INTERVAL_MIN;
+        let maxInterval = RUBY_SPAWN_INTERVAL_MAX;
+        if (this.currency.has('perk_luck')) {
+            minInterval *= 0.5;
+            maxInterval *= 0.5;
+        }
+        this.rubySpawnInterval = minInterval + Math.random() * (maxInterval - minInterval);
+        this.rubySpawnTimer = 0;
+    }
+
+    trySpawnRuby() {
+        // Ограничение: не более 3 рубинов одновременно
+        if (this.rubies.length >= 3) return;
+
+        // Ищем свободную клетку
+        let attempts = 0;
+        while (attempts < 50) {
+            const x = Math.floor(Math.random() * this.tileCount);
+            const y = Math.floor(Math.random() * this.tileCount);
+
+            const occupied =
+                this.snake.some(p => p.x === x && p.y === y) ||
+                (this.food && this.food.x === x && this.food.y === y) ||
+                (this.gift && this.gift.x === x && this.gift.y === y) ||
+                this.obstacles.some(o => o.x === x && o.y === y) ||
+                this.ghostTrails.some(g => g.x === x && g.y === y) ||
+                this.rubies.some(r => r.x === x && r.y === y) ||
+                (this.aiOpponent && this.aiOpponent.snake && this.aiOpponent.snake.some(p => p.x === x && p.y === y));
+
+            if (!occupied) {
+                this.rubies.push({ x, y, ttl: RUBY_LIFETIME });
+                // Партиклы при появлении
+                if (this.particleSystem) {
+                    this.particleSystem.addExplosion(x, y, "#ff2d55", 6);
+                }
+                return;
+            }
+            attempts++;
+        }
+    }
+
+    updateRubies(deltaMs) {
+        // Тик таймера спавна
+        this.rubySpawnTimer += deltaMs;
+        if (this.rubySpawnTimer >= this.rubySpawnInterval) {
+            this.trySpawnRuby();
+            this.scheduleNextRubySpawn();
+        }
+
+        // Обновляем TTL существующих
+        for (let i = this.rubies.length - 1; i >= 0; i--) {
+            this.rubies[i].ttl -= deltaMs;
+            if (this.rubies[i].ttl <= 0) {
+                // Партиклы при исчезновении
+                if (this.particleSystem) {
+                    this.particleSystem.addExplosion(this.rubies[i].x, this.rubies[i].y, "#8b0000", 4);
+                }
+                this.rubies.splice(i, 1);
+            }
+        }
+    }
+
     endGame(victory = false) {
         playSound("die", this.soundEnabled);
         this.gameOver = true;
@@ -256,7 +344,6 @@ export class Game {
         }
 
         this.currentScreen = "MAIN";
-
         this.mainMenuSelection = 0;
         this.mainMenuScrollY = 0;
         this.timeModeActive = false;
@@ -270,17 +357,7 @@ export class Game {
         }
         this.goldDistanceBeforeDeath = null;
 
-        // === КРИСТАЛЛЫ ЗА ИГРУ ===
-        if (!this.usedAIThisSession && this.score > 0) {
-            let earned = Math.floor(this.score / 2);
-            if (this.score >= 50) earned += 5;
-            if (this.score >= 100) earned += 10;
-            if (this.score >= 500) earned += 50;
-            if (earned > 0) {
-                this.currency.add(earned);
-            }
-        }
-
+        // FIX: убрали автоматическое начисление рубинов за очки
         this.updateHUD();
         this.sendScoreToFirebase(this.score);
     }
@@ -328,6 +405,10 @@ export class Game {
             this.gameMechanics.timeAccumulator = 0;
         }
 
+        // FIX: сброс рубинов
+        this.rubies = [];
+        this.scheduleNextRubySpawn();
+
         this.specialModes.reset();
 
         this.screenEffects.generateNextFoodType();
@@ -344,7 +425,6 @@ export class Game {
             this.aiOpponentScore = 0;
         }
 
-        // === ПРИМЕНЕНИЕ КУПЛЕННЫХ БОНУСОВ ===
         if (this.currency) {
             if (this.currency.activeBonuses['boost_start']) {
                 for (let i = 0; i < 5; i++) {
@@ -381,9 +461,7 @@ export class Game {
     handleMenuPress() {
         initAudio();
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
-            if (!this.isPaused) {
-                this.isPaused = true;
-            }
+            if (!this.isPaused) this.isPaused = true;
             this.currentScreen = "MAIN";
         }
     }
@@ -423,7 +501,6 @@ export class Game {
             }
         } else {
             if (this.currentScreen === "MAIN") {
-                // Меню: при gameOver 9 пунктов (0..8), при паузе 10 пунктов (0..9)
                 let max = this.gameOver ? 8 : 9;
                 if (act === "UP") this.mainMenuSelection = (this.mainMenuSelection <= 0) ? max : this.mainMenuSelection - 1;
                 if (act === "DOWN") this.mainMenuSelection = (this.mainMenuSelection >= max) ? 0 : this.mainMenuSelection + 1;
@@ -433,7 +510,6 @@ export class Game {
                 const visibleHeight = 240;
                 const itemHeight = 30;
                 const maxScroll = Math.max(0, (maxMode + 1) * itemHeight - visibleHeight);
-
                 if (act === "UP") {
                     this.modesMenuSelection = (this.modesMenuSelection <= 0) ? maxMode : this.modesMenuSelection - 1;
                     let targetY = this.modesMenuSelection * itemHeight;
@@ -466,13 +542,11 @@ export class Game {
                 if (act === "UP") this.achScrollY = Math.max(0, this.achScrollY - 20);
                 if (act === "DOWN") this.achScrollY = Math.min(this.maxAchScrollY, this.achScrollY + 20);
             }
-            // === НАВИГАЦИЯ В МАГАЗИНЕ ===
             else if (this.currentScreen === "SHOP") {
                 const itemHeight = 52;
                 const visibleHeight = 260;
                 const totalHeight = SHOP_ITEMS.length * itemHeight;
                 const maxScroll = Math.max(0, totalHeight - visibleHeight);
-
                 if (act === "UP") {
                     this.shopSelection = (this.shopSelection <= 0) ? SHOP_ITEMS.length - 1 : this.shopSelection - 1;
                     let targetY = this.shopSelection * itemHeight;
@@ -538,6 +612,8 @@ export class Game {
                 this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             }
             this.renderer.drawGift(this.gift, this.flashToggle);
+            // FIX: рисуем рубины и в паузе
+            if (this.renderer.drawRubies) this.renderer.drawRubies(this.rubies, this.flashToggle);
             this.renderer.drawFloatingScores(this.floatingScores);
             if (this.currentModeIdx === 8) this.renderer.drawCoins(this.specialModes.coins);
             if (this.currentModeIdx === 9) this.renderer.drawPortals(this.specialModes.portals);
@@ -554,13 +630,16 @@ export class Game {
             else if (this.currentScreen === "ACHIEVEMENTS") this.menuDrawer.drawAchievementsScreen();
             else if (this.currentScreen === "ABOUT") this.menuDrawer.drawAboutScreen();
             else if (this.currentScreen === "MODE_INFO") this.menuDrawer.drawModeInfoScreen();
-            // === МАГАЗИН ===
             else if (this.currentScreen === "SHOP") this.shopDrawer.draw();
             return;
         }
 
         this.updateTimeMode();
         this.moveFoodInRushMode();
+
+        // FIX: тик рубинов
+        const tickMs = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
+        this.updateRubies(tickMs);
 
         if (this.currentModeIdx !== 8) {
             if (this.foodType === "BIG" || this.foodType === "SHRINK" || this.foodType === "TURBO" || this.foodType === "SHIELD") {
@@ -576,7 +655,6 @@ export class Game {
                     const percentage = Math.max(0, (this.bonusTimer / maxTime) * 100);
                     this.timerBar.style.width = percentage + "%";
                 }
-
                 if (this.bonusTimer <= 0 && this.foodType !== "SHIELD") {
                     this.foodType = "REGULAR";
                     this.timerContainer.style.visibility = "hidden";
@@ -628,6 +706,8 @@ export class Game {
                 this.renderer.drawFood(this.food, this.foodType, this.flashToggle);
             }
             this.renderer.drawGift(this.gift, this.flashToggle);
+            // FIX: рисуем рубины
+            if (this.renderer.drawRubies) this.renderer.drawRubies(this.rubies, this.flashToggle);
             this.renderer.drawSnake(this.snake, this.rainbowHue, this.shieldActive);
             this.renderer.drawFloatingScores(this.floatingScores);
             if (this.currentModeIdx === 8) this.renderer.drawCoins(this.specialModes.coins);
