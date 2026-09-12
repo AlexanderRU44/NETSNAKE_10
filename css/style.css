@@ -15,7 +15,7 @@ body {
     min-height: 100vh; 
     min-height: 100dvh;
     margin: 0; 
-    padding: 20px 0px 20px 0px;          /* FIX: 40px сверху, 20px снизу, 12px по бокам */
+    padding: 15px 12px 20px 12px;          /* FIX: 40px сверху, 20px снизу, 12px по бокам */
     overflow: hidden;
     touch-action: none; 
     overscroll-behavior: none;
