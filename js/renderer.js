@@ -113,7 +113,7 @@ export class Renderer {
 
     drawSnake(snake, rainbowHue, shieldActive = false) {
         if (!snake || snake.length === 0) return;
-        
+
         const ctx = this.ctx;
         const activeColor = this.snakeColors[this.getCurrentSnakeColorIdx()];
         const isRainbow = activeColor.hex === "RAINBOW";
@@ -121,13 +121,13 @@ export class Renderer {
         const baseColor = isDynamic ? (this.isDarkTheme ? "#ecf2f8" : "#2b3a4a") : activeColor.hex;
         const eyeColor = (activeColor.eyeHex === "DYNAMIC") ? (this.isDarkTheme ? "#0d1117" : "#ffffff") : activeColor.eyeHex;
         const cellSize = this._cellSize;
-        
+
         ctx.save();
-        
+
         for (let i = 0; i < snake.length; i++) {
             const part = snake[i];
             if (!part || part.x === undefined || part.y === undefined) continue;
-            
+
             const x = part.x * cellSize;
             const y = part.y * cellSize;
             const rx = Math.round(x);
@@ -139,7 +139,7 @@ export class Renderer {
             } else {
                 ctx.fillStyle = baseColor;
             }
-            
+
             ctx.beginPath();
             ctx.roundRect(rx + 1, ry + 1, 18, 18, 4);
             ctx.fill();
@@ -156,7 +156,7 @@ export class Renderer {
                     ctx.arc(rx + 10, ry + 10, 10, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                
+
                 ctx.fillStyle = eyeColor;
                 ctx.beginPath();
                 ctx.arc(rx + 7, ry + 7, 2.5, 0, Math.PI * 2);
@@ -164,7 +164,7 @@ export class Renderer {
                 ctx.beginPath();
                 ctx.arc(rx + 13, ry + 7, 2.5, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 ctx.fillStyle = "#000000";
                 ctx.beginPath();
                 ctx.arc(rx + 7, ry + 7, 1.2, 0, Math.PI * 2);
@@ -174,33 +174,32 @@ export class Renderer {
                 ctx.fill();
             }
         }
-        
+
         ctx.restore();
     }
 
     drawOpponentSnake(opponentSnake) {
         if (!opponentSnake || opponentSnake.length === 0) return;
-        
+
         const ctx = this.ctx;
         const cellSize = this._cellSize;
-        
+
         ctx.save();
-        
+
         for (let i = 0; i < opponentSnake.length; i++) {
             const part = opponentSnake[i];
             if (!part || part.x === undefined || part.y === undefined) continue;
-            
+
             const x = part.x * cellSize;
             const y = part.y * cellSize;
             const rx = Math.round(x);
             const ry = Math.round(y);
-            
-            // Красная змейка оппонента
+
             ctx.fillStyle = this.isDarkTheme ? "#ff5555" : "#cc0000";
             ctx.beginPath();
             ctx.roundRect(rx + 1, ry + 1, 18, 18, 4);
             ctx.fill();
-            
+
             if (i === 0) {
                 ctx.fillStyle = "#ffffff";
                 ctx.beginPath();
@@ -218,7 +217,7 @@ export class Renderer {
                 ctx.fill();
             }
         }
-        
+
         ctx.restore();
     }
 
@@ -227,7 +226,7 @@ export class Renderer {
 
         const ctx = this.ctx;
         const cellSize = this._cellSize;
-        
+
         ctx.save();
 
         for (let i = 0; i < aiSnake.length; i++) {
@@ -259,7 +258,7 @@ export class Renderer {
                 ctx.fill();
             }
         }
-        
+
         ctx.restore();
     }
 
@@ -366,6 +365,58 @@ export class Renderer {
             ctx.fillRect(px + 12, py + 3, 3, 2);
             ctx.fillStyle = darkSubColor;
             ctx.fillRect(px + 9, py + 4, 2, 1);
+        }
+    }
+
+    // === РУБИНЫ ===
+    drawRubies(rubies, flashToggle) {
+        if (!rubies || rubies.length === 0) return;
+        const ctx = this.ctx;
+        const cellSize = this._cellSize;
+        const isDark = this.isDarkTheme;
+
+        for (const ruby of rubies) {
+            const x = ruby.x * cellSize;
+            const y = ruby.y * cellSize;
+
+            // Мигание в последние 2.5 секунды
+            const ttlSeconds = ruby.ttl / 1000;
+            if (ttlSeconds < 2.5 && !flashToggle) continue;
+
+            // Свечение вокруг
+            ctx.fillStyle = isDark ? "rgba(255, 45, 85, 0.25)" : "rgba(255, 45, 85, 0.15)";
+            ctx.fillRect(x - 2, y - 2, cellSize + 4, cellSize + 4);
+
+            // Форма ромба (рубин)
+            ctx.fillStyle = "#ff2d55";
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 1);
+            ctx.lineTo(x + 19, y + 10);
+            ctx.lineTo(x + 10, y + 19);
+            ctx.lineTo(x + 1, y + 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // Блик
+            ctx.fillStyle = "#ffb3c1";
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 4);
+            ctx.lineTo(x + 13, y + 7);
+            ctx.lineTo(x + 10, y + 10);
+            ctx.lineTo(x + 7, y + 7);
+            ctx.closePath();
+            ctx.fill();
+
+            // Тёмный контур
+            ctx.strokeStyle = "#8b0000";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 1);
+            ctx.lineTo(x + 19, y + 10);
+            ctx.lineTo(x + 10, y + 19);
+            ctx.lineTo(x + 1, y + 10);
+            ctx.closePath();
+            ctx.stroke();
         }
     }
 
