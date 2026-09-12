@@ -39,7 +39,6 @@ export const i18n = {
         shieldDesc: "ЗАЩИЩАЕТ ОТ ОДНОГО СТОЛКНОВЕНИЯ",
         github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "ПОРТАЛ!",
-        // === МАГАЗИН ===
         shopMenu: "МАГАЗИН",
         shopTitle: "МАГАЗИН КРИСТАЛЛОВ",
         crystals: "КРИСТАЛЛЫ",
@@ -47,6 +46,8 @@ export const i18n = {
         owned: "КУПЛЕНО",
         notEnough: "НЕ ХВАТАЕТ КРИСТАЛЛОВ",
         purchased: "КУПЛЕНО!",
+        ruby: "РУБИН",
+        rubyDesc: "Собери рубин, пока он не исчез!",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
             score100: "ЛОВКАЧ", score100Desc: "НАБЕРИТЕ 100 ОЧКОВ",
@@ -174,7 +175,6 @@ export const i18n = {
         shieldDesc: "PROTECTS FROM ONE COLLISION",
         github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "PORTAL!",
-        // === SHOP ===
         shopMenu: "SHOP",
         shopTitle: "CRYSTAL SHOP",
         crystals: "CRYSTALS",
@@ -182,6 +182,8 @@ export const i18n = {
         owned: "OWNED",
         notEnough: "NOT ENOUGH CRYSTALS",
         purchased: "PURCHASED!",
+        ruby: "RUBY",
+        rubyDesc: "Collect the ruby before it disappears!",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
             score100: "NIMBLE", score100Desc: "REACH 100 POINTS",
