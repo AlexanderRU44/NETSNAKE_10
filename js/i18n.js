@@ -48,6 +48,9 @@ export const i18n = {
         purchased: "КУПЛЕНО!",
         ruby: "РУБИН",
         rubyDesc: "Собери рубин, пока он не исчез!",
+        resetCache: "СБРОСИТЬ КЭШ",
+        resetCacheConfirm: "ОБНОВИТЬ ИГРУ?",
+        resetCacheHint: "OK - ОБНОВИТЬ",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
             score100: "ЛОВКАЧ", score100Desc: "НАБЕРИТЕ 100 ОЧКОВ",
@@ -184,6 +187,9 @@ export const i18n = {
         purchased: "PURCHASED!",
         ruby: "RUBY",
         rubyDesc: "Collect the ruby before it disappears!",
+        resetCache: "CLEAR CACHE",
+        resetCacheConfirm: "UPDATE GAME?",
+        resetCacheHint: "OK - UPDATE",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
             score100: "NIMBLE", score100Desc: "REACH 100 POINTS",
