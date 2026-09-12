@@ -39,6 +39,14 @@ export const i18n = {
         shieldDesc: "ЗАЩИЩАЕТ ОТ ОДНОГО СТОЛКНОВЕНИЯ",
         github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "ПОРТАЛ!",
+        // === МАГАЗИН ===
+        shopMenu: "МАГАЗИН",
+        shopTitle: "МАГАЗИН КРИСТАЛЛОВ",
+        crystals: "КРИСТАЛЛЫ",
+        buy: "КУПИТЬ",
+        owned: "КУПЛЕНО",
+        notEnough: "НЕ ХВАТАЕТ КРИСТАЛЛОВ",
+        purchased: "КУПЛЕНО!",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
             score100: "ЛОВКАЧ", score100Desc: "НАБЕРИТЕ 100 ОЧКОВ",
@@ -60,7 +68,6 @@ export const i18n = {
             identityCrisis: "КРИЗИС ИДЕНТИЧНОСТИ", identityCrisisDesc: "СМЕНИТЕ ТЕМУ ОФОРМЛЕНИЯ 5 РАЗ ЗА СЕССИЮ",
             greed: "ЖАДНОСТЬ", greedDesc: "ПОГИБНИТЕ В ШАГЕ ОТ ЗОЛОТОГО ЯБЛОКА"
         },
-        // Расширенная информация для экрана информации о режиме
         modeDetails: {
             classic: [
                 "• КЛАССИЧЕСКАЯ МЕХАНИКА ЗМЕЙКИ",
@@ -167,6 +174,14 @@ export const i18n = {
         shieldDesc: "PROTECTS FROM ONE COLLISION",
         github: "GITHUB: https://github.com/AlexanderRU44/netsnake10",
         portal: "PORTAL!",
+        // === SHOP ===
+        shopMenu: "SHOP",
+        shopTitle: "CRYSTAL SHOP",
+        crystals: "CRYSTALS",
+        buy: "BUY",
+        owned: "OWNED",
+        notEnough: "NOT ENOUGH CRYSTALS",
+        purchased: "PURCHASED!",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
             score100: "NIMBLE", score100Desc: "REACH 100 POINTS",
@@ -188,7 +203,6 @@ export const i18n = {
             identityCrisis: "IDENTITY CRISIS", identityCrisisDesc: "SWITCH THE DESIGN THEME 5 TIMES IN MENU",
             greed: "GREED", greedDesc: "DIE JUST ONE STEP AWAY FROM A GOLDEN APPLE"
         },
-        // Expanded mode details for mode info screen
         modeDetails: {
             classic: [
                 "• CLASSIC SNAKE MECHANICS",
