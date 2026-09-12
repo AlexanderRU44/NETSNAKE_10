@@ -1,29 +1,35 @@
-export let achievements = {
-    firstBlood: localStorage.getItem("ach_firstBlood") === "true",
-    speedDemon: localStorage.getItem("ach_speedDemon") === "true",
-    energyDrink: localStorage.getItem("ach_energyDrink") === "true",
-    vegetarian: localStorage.getItem("ach_vegetarian") === "true",
-    survivor: localStorage.getItem("ach_survivor") === "true",
-    blindManeuver: localStorage.getItem("ach_blindManeuver") === "true",
-    cyborg: localStorage.getItem("ach_cyborg") === "true", 
-    hawkTactics: localStorage.getItem("ach_hawkTactics") === "true",
-    dietMode: localStorage.getItem("ach_dietMode") === "true",
-    identityCrisis: localStorage.getItem("ach_identityCrisis") === "true",
-    greed: localStorage.getItem("ach_greed") === "true"
+export let tasks = {
+    score50: false, score100: false, score500: false, score1000: false,
+    goldFood: false, blueFood: false
 };
 
-export let isChameleonUnlocked = localStorage.getItem("snake_chameleon_unlocked") === "true";
+// Награда рубинами за конкретное задание
+const TASK_REWARDS = {
+    score50: 5,
+    score100: 10,
+    score500: 30,
+    score1000: 60,
+    goldFood: 8,
+    blueFood: 8
+};
 
-export function unlockAchievement(id, achievementsObj) {
-    if (!achievementsObj[id]) {
-        achievementsObj[id] = true;
-        localStorage.setItem("ach_" + id, "true");
-        // Обновляем статус хамелеона при разблокировке
-        if (id === "cyborg") {
-            localStorage.setItem("snake_chameleon_unlocked", "true");
-            isChameleonUnlocked = true;
+export function completeTask(id, tasksObj, playSoundCallback, spawnGiftCallback) {
+    if (!tasksObj[id]) {
+        tasksObj[id] = true;
+        playSoundCallback("taskComplete");
+        if (spawnGiftCallback) spawnGiftCallback();
+        // FIX: награда рубинами за задание
+        const reward = TASK_REWARDS[id] || 5;
+        if (window.gameRef && window.gameRef.currency) {
+            window.gameRef.currency.add(reward);
         }
-        return true;
     }
-    return false;
+}
+
+export function checkScoreTasks(score, tasksObj, completeTaskCallback, unlockAchievementCallback, achievementsObj) {
+    if (score >= 10) unlockAchievementCallback("firstBlood", achievementsObj);
+    if (score >= 50) completeTaskCallback("score50", tasksObj);
+    if (score >= 100) completeTaskCallback("score100", tasksObj);
+    if (score >= 500) completeTaskCallback("score500", tasksObj);
+    if (score >= 1000) completeTaskCallback("score1000", tasksObj);
 }
