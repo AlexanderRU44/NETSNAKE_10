@@ -1,7 +1,8 @@
-import { initAudio, updateMusicBySound } from './utils.js';
+import { initAudio, updateMusicBySound, playSound } from './utils.js';
 import { unlockAchievement, isChameleonUnlocked } from './achievements.js';
 import { achievements } from './achievements.js';
 import { snakeColors } from './utils.js';
+import { SHOP_ITEMS } from './shop.js';
 
 export class GameStateHandler {
     constructor(game) {
@@ -10,7 +11,7 @@ export class GameStateHandler {
 
     async handleCenter() {
         initAudio();
-        
+
         if (this.game.currentScreen === "INTRO") {
             if (this.game.introScreen.isReady()) {
                 this.game.currentScreen = "MAIN";
@@ -19,19 +20,25 @@ export class GameStateHandler {
             }
             return;
         }
-        
+
         if (this.game.currentScreen === "EDIT_NAME") {
             this.game.saveNameInput();
             return;
         }
-        
+
         if (this.game.currentScreen === "ABOUT" && this.game.currentGithubUrl) {
             window.open(this.game.currentGithubUrl, '_blank');
             return;
         }
-        
-        if (!this.game.isPaused && !this.game.gameOver && 
-            this.game.cheatSequence.length === 3 && 
+
+        // === ПОКУПКА В МАГАЗИНЕ ===
+        if (this.game.currentScreen === "SHOP") {
+            this.handleShopPurchase();
+            return;
+        }
+
+        if (!this.game.isPaused && !this.game.gameOver &&
+            this.game.cheatSequence.length === 3 &&
             this.game.cheatSequence.every((val, i) => val === this.game.targetCheat[i])) {
             this.game.aiMode = !this.game.aiMode;
             if (this.game.aiMode) {
@@ -43,16 +50,16 @@ export class GameStateHandler {
             return;
         }
         this.game.cheatSequence = [];
-        
+
         if (this.game.currentScreen === "MAIN") {
             await this.handleMainMenu();
-        } 
+        }
         else if (this.game.currentScreen === "MODES") {
             this.handleModesMenu();
-        } 
+        }
         else if (this.game.currentScreen === "SETTINGS") {
             this.handleSettingsMenu();
-        } 
+        }
         else if (this.game.currentScreen === "MODE_INFO") {
             this.handleModeInfo();
         }
@@ -65,18 +72,7 @@ export class GameStateHandler {
         if (this.game.gameOver) {
             switch (this.game.mainMenuSelection) {
                 case 0: this.game.reset(); this.game.currentScreen = "MAIN"; this.game.updateMiniDisplay(); break;
-                case 1: this.game.currentScreen = "MODES"; this.game.modesMenuSelection = this.game.currentModeIdx; this.game.modesScrollY = 0; this.game.updateMiniDisplay(); break;
-                case 2: this.game.currentScreen = "MODE_INFO"; this.game.updateMiniDisplay(); break;
-                case 3: this.game.currentScreen = "SETTINGS"; this.game.settingsMenuSelection = 0; this.game.updateMiniDisplay(); break;
-                case 4: this.game.currentScreen = "LEADERBOARD"; await this.game.loadTopTen(); this.game.updateMiniDisplay(); break;
-                case 5: this.game.currentScreen = "TASKS"; this.game.tasksScrollY = 0; this.game.updateMiniDisplay(); break;
-                case 6: this.game.currentScreen = "ACHIEVEMENTS"; this.game.achScrollY = 0; this.game.updateMiniDisplay(); break;
-                case 7: this.game.currentScreen = "ABOUT"; this.game.aboutScrollY = 0; this.game.updateMiniDisplay(); break;
-            }
-        } else {
-            switch (this.game.mainMenuSelection) {
-                case 0: this.game.isPaused = false; this.game.lastTimeUpdate = Date.now(); this.game.updateMiniDisplay(); break;
-                case 1: this.game.reset(); this.game.currentScreen = "MAIN"; this.game.updateMiniDisplay(); break;
+                case 1: this.game.currentScreen = "SHOP"; this.game.shopSelection = 0; this.game.shopScrollY = 0; this.game.updateMiniDisplay(); break;
                 case 2: this.game.currentScreen = "MODES"; this.game.modesMenuSelection = this.game.currentModeIdx; this.game.modesScrollY = 0; this.game.updateMiniDisplay(); break;
                 case 3: this.game.currentScreen = "MODE_INFO"; this.game.updateMiniDisplay(); break;
                 case 4: this.game.currentScreen = "SETTINGS"; this.game.settingsMenuSelection = 0; this.game.updateMiniDisplay(); break;
@@ -85,7 +81,53 @@ export class GameStateHandler {
                 case 7: this.game.currentScreen = "ACHIEVEMENTS"; this.game.achScrollY = 0; this.game.updateMiniDisplay(); break;
                 case 8: this.game.currentScreen = "ABOUT"; this.game.aboutScrollY = 0; this.game.updateMiniDisplay(); break;
             }
+        } else {
+            switch (this.game.mainMenuSelection) {
+                case 0: this.game.isPaused = false; this.game.lastTimeUpdate = Date.now(); this.game.updateMiniDisplay(); break;
+                case 1: this.game.reset(); this.game.currentScreen = "MAIN"; this.game.updateMiniDisplay(); break;
+                case 2: this.game.currentScreen = "SHOP"; this.game.shopSelection = 0; this.game.shopScrollY = 0; this.game.updateMiniDisplay(); break;
+                case 3: this.game.currentScreen = "MODES"; this.game.modesMenuSelection = this.game.currentModeIdx; this.game.modesScrollY = 0; this.game.updateMiniDisplay(); break;
+                case 4: this.game.currentScreen = "MODE_INFO"; this.game.updateMiniDisplay(); break;
+                case 5: this.game.currentScreen = "SETTINGS"; this.game.settingsMenuSelection = 0; this.game.updateMiniDisplay(); break;
+                case 6: this.game.currentScreen = "LEADERBOARD"; await this.game.loadTopTen(); this.game.updateMiniDisplay(); break;
+                case 7: this.game.currentScreen = "TASKS"; this.game.tasksScrollY = 0; this.game.updateMiniDisplay(); break;
+                case 8: this.game.currentScreen = "ACHIEVEMENTS"; this.game.achScrollY = 0; this.game.updateMiniDisplay(); break;
+                case 9: this.game.currentScreen = "ABOUT"; this.game.aboutScrollY = 0; this.game.updateMiniDisplay(); break;
+            }
         }
+    }
+
+    // === ЛОГИКА ПОКУПКИ В МАГАЗИНЕ ===
+    handleShopPurchase() {
+        const item = SHOP_ITEMS[this.game.shopSelection];
+        if (!item) return;
+
+        // Уже куплено (кроме расходников)
+        if (item.type !== 'consumable' && this.game.currency.has(item.id)) {
+            return;
+        }
+
+        // Не хватает кристаллов
+        if (this.game.currency.crystals < item.price) {
+            playSound('die', this.game.soundEnabled);
+            return;
+        }
+
+        // Списываем
+        if (!this.game.currency.spend(item.price)) return;
+
+        // Применяем
+        if (item.type === 'skin') {
+            this.game.currency.markPurchased(item.id);
+            this.game.currentSnakeColorIdx = item.colorIdx;
+            localStorage.setItem('snake_color_idx', item.colorIdx);
+        } else if (item.type === 'permanent') {
+            this.game.currency.markPurchased(item.id);
+        } else if (item.type === 'consumable') {
+            this.game.currency.activeBonuses[item.id] = true;
+        }
+
+        playSound('taskComplete', this.game.soundEnabled);
     }
 
     handleModesMenu() {
