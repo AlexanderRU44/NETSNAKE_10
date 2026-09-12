@@ -11,11 +11,11 @@ body {
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    justify-content: center;
+    justify-content: flex-start;      /* FIX: контент прижат к верху */
     min-height: 100vh; 
-    min-height: -webkit-fill-available;
+    min-height: 100dvh;               /* FIX: корректная высота на мобильных */
     margin: 0; 
-    padding: 10px; 
+    padding: 10px 10px 0 10px;        /* FIX: без нижнего паддинга */
     overflow: hidden;
     touch-action: none; 
     overscroll-behavior: none;
@@ -28,12 +28,13 @@ body {
     border-radius: 20px; 
     width: 100%; 
     max-width: 410px; 
-    max-height: 96vh;
+    max-height: 100dvh;               /* FIX: 100dvh вместо 96vh */
     overflow-y: auto;
     display: flex; 
     flex-direction: column; 
     gap: 12px; 
     position: relative;
+    margin: 0 auto;                   /* FIX: центрирование по горизонтали */
     transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
@@ -156,6 +157,7 @@ canvas {
     width: 100%; 
     max-width: 340px; 
     margin: 5px auto 10px auto;
+    margin-top: auto;   /* FIX: прижать джойстик к низу экрана */
 }
 
 .btn {
@@ -393,7 +395,7 @@ body.dark-theme .next-food-label {
 
 /* АДАПТИВ */
 @media screen and (max-width: 360px) {
-    body { padding: 5px; }
+    body { padding: 5px 5px 0 5px; }
     .phone-wrapper { padding: 10px; gap: 8px; }
     .top-panel { padding: 4px 8px; }
     .top-panel h1 { font-size: 0.7rem; }
@@ -407,16 +409,22 @@ body.dark-theme .next-food-label {
     .btn-side { height: 36px; font-size: 0.55rem; }
 }
 
-@media screen and (max-height: 650px) {
-    body { justify-content: flex-start; overflow-y: auto; } 
+@media screen and (max-height: 700px) {
+    .btn-dir, .btn-center { height: 48px; }
+    .btn-side { height: 38px; }
     .phone-wrapper { gap: 8px; padding: 10px; }
-    .btn-dir, .btn-center { height: 45px; }
-    .btn-side { height: 35px; }
 }
 
 @media screen and (max-height: 600px) {
-    .btn-dir, .btn-center { height: 40px; font-size: 0.9rem; }
-    .btn-side { height: 32px; font-size: 0.5rem; }
+    .btn-dir, .btn-center { height: 42px; font-size: 0.9rem; }
+    .btn-side { height: 34px; font-size: 0.5rem; }
     .dpad-container { gap: 4px; margin-bottom: 5px; }
     .phone-wrapper { padding: 8px; gap: 6px; }
+}
+
+/* Очень высокие экраны — увеличиваем кнопки */
+@media screen and (min-height: 850px) {
+    .btn-dir, .btn-center { height: 65px; font-size: 1.3rem; }
+    .btn-side { height: 48px; font-size: 0.65rem; }
+    .dpad-container { gap: 10px; }
 }
