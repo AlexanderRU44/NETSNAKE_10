@@ -11,11 +11,11 @@ body {
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    justify-content: center;           /* FIX: центр по вертикали */
+    justify-content: center;               /* центр по вертикали */
     min-height: 100vh; 
     min-height: 100dvh;
     margin: 0; 
-    padding: 10px;
+    padding: 40px 0px 0px 0px;          /* FIX: 40px сверху, 20px снизу, 12px по бокам */
     overflow: hidden;
     touch-action: none; 
     overscroll-behavior: none;
@@ -32,7 +32,7 @@ body {
     flex-direction: column; 
     gap: 12px; 
     position: relative;
-    margin: auto;                       /* FIX: центр по вертикали и горизонтали */
+    margin: auto;                          /* центр по вертикали и горизонтали */
     transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
@@ -392,7 +392,7 @@ body.dark-theme .next-food-label {
 
 /* АДАПТИВ */
 @media screen and (max-width: 360px) {
-    body { padding: 5px; }
+    body { padding: 30px 8px 15px 8px; }
     .phone-wrapper { padding: 10px; gap: 8px; }
     .top-panel { padding: 4px 8px; }
     .top-panel h1 { font-size: 0.7rem; }
@@ -407,12 +407,14 @@ body.dark-theme .next-food-label {
 }
 
 @media screen and (max-height: 700px) {
+    body { padding: 25px 10px 15px 10px; }
     .btn-dir, .btn-center { height: 48px; }
     .btn-side { height: 38px; }
     .phone-wrapper { gap: 8px; padding: 10px; }
 }
 
 @media screen and (max-height: 600px) {
+    body { padding: 15px 8px 10px 8px; }
     .btn-dir, .btn-center { height: 42px; font-size: 0.9rem; }
     .btn-side { height: 34px; font-size: 0.5rem; }
     .dpad-container { gap: 4px; margin-bottom: 5px; }
@@ -420,6 +422,7 @@ body.dark-theme .next-food-label {
 }
 
 @media screen and (min-height: 850px) {
+    body { padding: 50px 15px 25px 15px; }
     .btn-dir, .btn-center { height: 65px; font-size: 1.3rem; }
     .btn-side { height: 48px; font-size: 0.65rem; }
     .dpad-container { gap: 10px; }
