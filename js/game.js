@@ -18,6 +18,10 @@ import { AnimationController } from './animationController.js';
 import { GameMechanics } from './gameMechanics.js';
 import { SpecialModes } from './specialModes.js';
 import { ParticleSystem } from './particleSystem.js';
+// === МАГАЗИН ===
+import { Currency } from './currency.js';
+import { ShopDrawer } from './shopDrawer.js';
+import { SHOP_ITEMS } from './shop.js';
 import {
     audioCtx, initAudio, triggerVibration, playSound, snakeColors, speeds,
     maxBigFoodTime, maxShrinkTime, maxTurboTime, addFloatingScore,
@@ -119,6 +123,12 @@ export class Game {
         this.shieldActive = false;
         this.particleSystem = new ParticleSystem(this);
 
+        // === МАГАЗИН ===
+        this.currency = new Currency(this);
+        this.shopDrawer = new ShopDrawer(this.ctx, this);
+        this.shopSelection = 0;
+        this.shopScrollY = 0;
+
         this.specialModes = new SpecialModes(this);
         this.introScreen = new IntroScreen();
         this.isDarkTheme = this.getEffectiveTheme();
@@ -214,8 +224,9 @@ export class Game {
         }
 
         let shieldTag = this.shieldActive ? " [SHIELD]" : "";
+        let crystalTag = ` | ${this.currency.crystals}💎`;
 
-        this.scoreElement.innerText = `${t.score}:${this.score}${aiTag}${modeTag}${shieldTag}`;
+        this.scoreElement.innerText = `${t.score}:${this.score}${aiTag}${modeTag}${shieldTag}${crystalTag}`;
 
         if (this.bestPlayerName === "---") {
             this.hiScoreElement.innerText = `${t.hi}: ${t.loading}`;
@@ -259,6 +270,17 @@ export class Game {
         }
         this.goldDistanceBeforeDeath = null;
 
+        // === КРИСТАЛЛЫ ЗА ИГРУ ===
+        if (!this.usedAIThisSession && this.score > 0) {
+            let earned = Math.floor(this.score / 2);
+            if (this.score >= 50) earned += 5;
+            if (this.score >= 100) earned += 10;
+            if (this.score >= 500) earned += 50;
+            if (earned > 0) {
+                this.currency.add(earned);
+            }
+        }
+
         this.updateHUD();
         this.sendScoreToFirebase(this.score);
     }
@@ -296,7 +318,6 @@ export class Game {
         this.victoryFlag = false;
         this.goldDistanceBeforeDeath = null;
 
-        // FIX: корректный сброс щита + очистка таймера
         this.foodLogic.resetShield();
 
         if (this.specialModes) {
@@ -323,6 +344,29 @@ export class Game {
             this.aiOpponentScore = 0;
         }
 
+        // === ПРИМЕНЕНИЕ КУПЛЕННЫХ БОНУСОВ ===
+        if (this.currency) {
+            if (this.currency.activeBonuses['boost_start']) {
+                for (let i = 0; i < 5; i++) {
+                    this.snake.push({ x: 8 - i, y: 10 });
+                }
+                delete this.currency.activeBonuses['boost_start'];
+            }
+            if (this.currency.activeBonuses['boost_shield']) {
+                this.shieldActive = true;
+                delete this.currency.activeBonuses['boost_shield'];
+            }
+            if (this.currency.activeBonuses['boost_gift']) {
+                this.gift = { x: 15, y: 15 };
+                delete this.currency.activeBonuses['boost_gift'];
+            }
+            if (this.currency.activeBonuses['boost_double']) {
+                this.doubleScoreActive = true;
+                delete this.currency.activeBonuses['boost_double'];
+            }
+            this.currency.save();
+        }
+
         if (this.soundEnabled) {
             startBackgroundMusic();
         } else {
@@ -347,7 +391,7 @@ export class Game {
     handleBackPress() {
         initAudio();
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
-            if (["SETTINGS", "LEADERBOARD", "TASKS", "ACHIEVEMENTS", "MODES", "ABOUT", "MODE_INFO"].includes(this.currentScreen)) {
+            if (["SETTINGS", "LEADERBOARD", "TASKS", "ACHIEVEMENTS", "MODES", "ABOUT", "MODE_INFO", "SHOP"].includes(this.currentScreen)) {
                 this.currentScreen = "MAIN";
             }
         }
@@ -379,6 +423,7 @@ export class Game {
             }
         } else {
             if (this.currentScreen === "MAIN") {
+                // Меню: при gameOver 9 пунктов (0..8), при паузе 10 пунктов (0..9)
                 let max = this.gameOver ? 8 : 9;
                 if (act === "UP") this.mainMenuSelection = (this.mainMenuSelection <= 0) ? max : this.mainMenuSelection - 1;
                 if (act === "DOWN") this.mainMenuSelection = (this.mainMenuSelection >= max) ? 0 : this.mainMenuSelection + 1;
@@ -392,21 +437,15 @@ export class Game {
                 if (act === "UP") {
                     this.modesMenuSelection = (this.modesMenuSelection <= 0) ? maxMode : this.modesMenuSelection - 1;
                     let targetY = this.modesMenuSelection * itemHeight;
-                    if (targetY < this.modesScrollY) {
-                        this.modesScrollY = targetY;
-                    } else if (targetY > this.modesScrollY + visibleHeight - itemHeight) {
-                        this.modesScrollY = targetY - (visibleHeight - itemHeight);
-                    }
+                    if (targetY < this.modesScrollY) this.modesScrollY = targetY;
+                    else if (targetY > this.modesScrollY + visibleHeight - itemHeight) this.modesScrollY = targetY - (visibleHeight - itemHeight);
                     this.modesScrollY = Math.max(0, Math.min(this.modesScrollY, maxScroll));
                 }
                 else if (act === "DOWN") {
                     this.modesMenuSelection = (this.modesMenuSelection >= maxMode) ? 0 : this.modesMenuSelection + 1;
                     let targetY = this.modesMenuSelection * itemHeight;
-                    if (targetY < this.modesScrollY) {
-                        this.modesScrollY = targetY;
-                    } else if (targetY > this.modesScrollY + visibleHeight - itemHeight) {
-                        this.modesScrollY = targetY - (visibleHeight - itemHeight);
-                    }
+                    if (targetY < this.modesScrollY) this.modesScrollY = targetY;
+                    else if (targetY > this.modesScrollY + visibleHeight - itemHeight) this.modesScrollY = targetY - (visibleHeight - itemHeight);
                     this.modesScrollY = Math.max(0, Math.min(this.modesScrollY, maxScroll));
                 }
             }
@@ -426,6 +465,28 @@ export class Game {
             else if (this.currentScreen === "ACHIEVEMENTS") {
                 if (act === "UP") this.achScrollY = Math.max(0, this.achScrollY - 20);
                 if (act === "DOWN") this.achScrollY = Math.min(this.maxAchScrollY, this.achScrollY + 20);
+            }
+            // === НАВИГАЦИЯ В МАГАЗИНЕ ===
+            else if (this.currentScreen === "SHOP") {
+                const itemHeight = 52;
+                const visibleHeight = 260;
+                const totalHeight = SHOP_ITEMS.length * itemHeight;
+                const maxScroll = Math.max(0, totalHeight - visibleHeight);
+
+                if (act === "UP") {
+                    this.shopSelection = (this.shopSelection <= 0) ? SHOP_ITEMS.length - 1 : this.shopSelection - 1;
+                    let targetY = this.shopSelection * itemHeight;
+                    if (targetY < this.shopScrollY) this.shopScrollY = targetY;
+                    else if (targetY > this.shopScrollY + visibleHeight - itemHeight) this.shopScrollY = targetY - (visibleHeight - itemHeight);
+                    this.shopScrollY = Math.max(0, Math.min(this.shopScrollY, maxScroll));
+                }
+                if (act === "DOWN") {
+                    this.shopSelection = (this.shopSelection >= SHOP_ITEMS.length - 1) ? 0 : this.shopSelection + 1;
+                    let targetY = this.shopSelection * itemHeight;
+                    if (targetY < this.shopScrollY) this.shopScrollY = targetY;
+                    else if (targetY > this.shopScrollY + visibleHeight - itemHeight) this.shopScrollY = targetY - (visibleHeight - itemHeight);
+                    this.shopScrollY = Math.max(0, Math.min(this.shopScrollY, maxScroll));
+                }
             }
         }
     }
@@ -493,6 +554,8 @@ export class Game {
             else if (this.currentScreen === "ACHIEVEMENTS") this.menuDrawer.drawAchievementsScreen();
             else if (this.currentScreen === "ABOUT") this.menuDrawer.drawAboutScreen();
             else if (this.currentScreen === "MODE_INFO") this.menuDrawer.drawModeInfoScreen();
+            // === МАГАЗИН ===
+            else if (this.currentScreen === "SHOP") this.shopDrawer.draw();
             return;
         }
 
