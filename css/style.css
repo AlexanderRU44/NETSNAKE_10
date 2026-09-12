@@ -11,11 +11,11 @@ body {
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    justify-content: flex-start;      /* FIX: контент прижат к верху */
+    justify-content: center;          /* FIX: центрирование по вертикали */
     min-height: 100vh; 
-    min-height: 100dvh;               /* FIX: корректная высота на мобильных */
+    min-height: 100dvh;               /* корректная высота на мобильных */
     margin: 0; 
-    padding: 10px 10px 0 10px;        /* FIX: без нижнего паддинга */
+    padding: 10px;
     overflow: hidden;
     touch-action: none; 
     overscroll-behavior: none;
@@ -28,13 +28,13 @@ body {
     border-radius: 20px; 
     width: 100%; 
     max-width: 410px; 
-    max-height: 100dvh;               /* FIX: 100dvh вместо 96vh */
+    max-height: 100dvh;
     overflow-y: auto;
     display: flex; 
     flex-direction: column; 
     gap: 12px; 
     position: relative;
-    margin: 0 auto;                   /* FIX: центрирование по горизонтали */
+    margin: 0 auto;                   /* центрирование по горизонтали */
     transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
@@ -51,17 +51,17 @@ body {
     margin: 0;
     font-size: 0.85rem;
     text-align: left;
-    white-space: nowrap;   /* запрет переноса строки */
+    white-space: nowrap;
 }
 
-/* ПАНЕЛЬ СЛЕДУЮЩАЯ ЕДА С РЯБЬЮ (уменьшена) */
+/* ПАНЕЛЬ СЛЕДУЮЩАЯ ЕДА С РЯБЬЮ */
 .next-food-panel {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 4px;              /* было 8px */
+    gap: 4px;
     border-radius: 12px;
-    padding: 4px 8px;      /* было 5px 12px */
+    padding: 4px 8px;
     overflow: hidden;
 }
 
@@ -100,15 +100,15 @@ body {
 .next-food-label {
     position: relative;
     z-index: 6;
-    font-size: 0.45rem;    /* было 0.5rem */
+    font-size: 0.45rem;
     letter-spacing: 1px;
     animation: textGlitch 0.3s infinite alternate;
 }
 
 #miniCanvas {
     display: block;
-    width: 28px;            /* было 36px */
-    height: 28px;           /* было 36px */
+    width: 28px;
+    height: 28px;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
@@ -156,8 +156,7 @@ canvas {
     gap: 8px; 
     width: 100%; 
     max-width: 340px; 
-    margin: 5px auto 10px auto;
-    margin-top: auto;   /* FIX: прижать джойстик к низу экрана */
+    margin: 5px auto 10px auto;   /* без margin-top: auto — джойстик идёт сразу за экраном */
 }
 
 .btn {
@@ -275,7 +274,7 @@ body.dark-theme .next-food-label {
     animation: textGlitchDark 0.3s infinite alternate;
 }
 
-/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА (обёртка) */
+/* МЯГКАЯ РЯБЬ ДЛЯ МАЛЕНЬКОГО ЭКРАНА */
 .mini-canvas-glitch {
     position: relative;
 }
@@ -395,7 +394,7 @@ body.dark-theme .next-food-label {
 
 /* АДАПТИВ */
 @media screen and (max-width: 360px) {
-    body { padding: 5px 5px 0 5px; }
+    body { padding: 5px; }
     .phone-wrapper { padding: 10px; gap: 8px; }
     .top-panel { padding: 4px 8px; }
     .top-panel h1 { font-size: 0.7rem; }
@@ -422,7 +421,6 @@ body.dark-theme .next-food-label {
     .phone-wrapper { padding: 8px; gap: 6px; }
 }
 
-/* Очень высокие экраны — увеличиваем кнопки */
 @media screen and (min-height: 850px) {
     .btn-dir, .btn-center { height: 65px; font-size: 1.3rem; }
     .btn-side { height: 48px; font-size: 0.65rem; }
