@@ -66,7 +66,7 @@ export class MenuDrawer {
             });
             ctx.restore();
         } else if (this.game.currentScreen === "SETTINGS") {
-            // FIX: скины заблокированы, пока не куплены
+            // Скины заблокированы, пока не куплены
             const snakeColorNames = ["КЛАССИКА", "ЗЕЛЁНАЯ", "СИНЯЯ", "РУБИНОВАЯ", "РАДУЖНАЯ"];
             const snakeColorNamesEN = ["CLASSIC", "GREEN", "BLUE", "RUBY", "RAINBOW"];
             let labelColor = t.locked;
@@ -83,17 +83,29 @@ export class MenuDrawer {
                 `${t.lang}:${this.game.currentLang}`,
                 `${t.name}:${this.game.playerName}`,
                 `${t.snakeColor}:${labelColor}`,
-                `${t.theme}:${t.themeModes[this.game.themeMode]}`
+                `${t.theme}:${t.themeModes[this.game.themeMode]}`,
+                `⚠ ${t.resetCache}`
             ];
             items.forEach((txt, i) => {
                 let y = 115 + (i * 34);
                 if (this.game.settingsMenuSelection === i) ctx.fillText(">", 35, y);
                 ctx.fillText(txt, 65, y);
             });
+
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
             ctx.font = "10px 'Press Start 2P'";
             ctx.fillText(t.back, 200, 345);
+
+            // Если выбран пункт "СБРОСИТЬ КЭШ" — предупреждение
+            if (this.game.settingsMenuSelection === 6) {
+                ctx.fillStyle = "#ff5c5c";
+                ctx.font = "8px 'Press Start 2P'";
+                ctx.fillText(t.resetCacheConfirm, 200, 300);
+                ctx.fillStyle = "#8b949e";
+                ctx.font = "7px 'Press Start 2P'";
+                ctx.fillText(t.resetCacheHint, 200, 316);
+            }
         } else if (this.game.currentScreen === "MODES") {
             this.drawModesScreen();
         } else if (this.game.currentScreen === "LEADERBOARD") {
