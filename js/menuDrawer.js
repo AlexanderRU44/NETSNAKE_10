@@ -8,22 +8,18 @@ export class MenuDrawer {
         this.ctx = ctx;
         this.game = game;
         this.githubLinkRect = null;
-        // FIX: кэш для загрузки текста "О игре" — чтобы не вызывать каждый кадр
         this._aboutLoaded = false;
         this._aboutLang = null;
     }
 
-    // Вспомогательный метод для переноса текста
     wrapText(text, maxWidth, ctx) {
         if (!text) return [];
         const words = text.split(' ');
         const lines = [];
         let currentLine = '';
-
         for (let word of words) {
             let testLine = currentLine ? currentLine + ' ' + word : word;
-            let metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && currentLine !== '') {
+            if (ctx.measureText(testLine).width > maxWidth && currentLine !== '') {
                 lines.push(currentLine);
                 currentLine = word;
             } else {
@@ -56,9 +52,10 @@ export class MenuDrawer {
             ctx.beginPath();
             ctx.rect(30, 90, 340, 260);
             ctx.clip();
+            // МАГАЗИН добавлен вторым пунктом
             let options = this.game.gameOver ?
-                [t.newGame, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu] :
-                [t.continue, t.newGame, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu];
+                [t.newGame, t.shopMenu, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu] :
+                [t.continue, t.newGame, t.shopMenu, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu];
             let expectedY = this.game.mainMenuSelection * 34;
             if (expectedY - this.game.mainMenuScrollY > 180) this.game.mainMenuScrollY = expectedY - 180;
             if (expectedY - this.game.mainMenuScrollY < 10) this.game.mainMenuScrollY = Math.max(0, expectedY - 10);
@@ -104,6 +101,9 @@ export class MenuDrawer {
             this.drawAboutScreen();
         } else if (this.game.currentScreen === "MODE_INFO") {
             this.drawModeInfoScreen();
+        } else if (this.game.currentScreen === "SHOP") {
+            // Магазин рисуется через shopDrawer, но на всякий случай
+            if (this.game.shopDrawer) this.game.shopDrawer.draw();
         }
     }
 
@@ -303,8 +303,6 @@ export class MenuDrawer {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
 
-        // FIX: загружаем текст один раз при входе на экран или смене языка,
-        // а не каждый кадр (раньше вызов был в теле метода).
         if (!this._aboutLoaded || this._aboutLang !== this.game.currentLang) {
             if (this.game.aboutLogic) this.game.aboutLogic.loadAboutText();
             this._aboutLoaded = true;
@@ -385,7 +383,6 @@ export class MenuDrawer {
         const modeName = t.gameModes[modeIdx];
         const modeDesc = t.modeDescriptions[modeIdx] || t.unknownTask;
 
-        // Маппинг индексов режимов на ключи в i18n
         const modeKeys = ['classic', 'walls', 'stones', 'ghost', 'movingStones', 'vsAI', 'timeMode', 'rushMode', 'coinCollector', 'portals'];
         const modeKey = modeKeys[modeIdx] || 'classic';
         const detailLines = t.modeDetails && t.modeDetails[modeKey] ? t.modeDetails[modeKey] : [];
@@ -406,7 +403,6 @@ export class MenuDrawer {
         ctx.textAlign = "center";
         ctx.fillText(`${t.modeInfoCurrent} ${modeName}`, 200, 75);
 
-        // Описание режима с переносом строк
         ctx.font = "8px 'Press Start 2P'";
         ctx.fillStyle = this.game.isDarkTheme ? "#58a6ff" : "#4a90e2";
         ctx.textAlign = "center";
@@ -420,7 +416,6 @@ export class MenuDrawer {
             y += 18;
         }
 
-        // Детальная информация
         y = y + 10;
         ctx.textAlign = "left";
         ctx.font = "7px 'Press Start 2P'";
