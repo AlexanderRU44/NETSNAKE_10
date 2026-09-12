@@ -168,8 +168,38 @@ export class GameStateHandler {
             this.game.renderer.isDarkTheme = this.game.isDarkTheme;
             this.game.themeChangesCount++;
             if (this.game.themeChangesCount >= 5) unlockAchievement("identityCrisis", achievements);
+        } else if (s === 6) {
+            // === СБРОС КЭША И ОБНОВЛЕНИЕ ===
+            this.resetCache();
+            return; // не вызываем updateMiniDisplay, т.к. страница перезагрузится
         }
         this.game.updateMiniDisplay();
+    }
+
+    // === Метод сброса кэша и перезагрузки ===
+    async resetCache() {
+        try {
+            // 1. Удаляем все кэши Service Worker
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+                console.log('[Cache] Удалены кэши:', keys);
+            }
+
+            // 2. Снимаем регистрацию Service Worker
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+                console.log('[SW] Регистрации удалены:', registrations.length);
+            }
+
+            // 3. Перезагружаем страницу
+            console.log('[Cache] Перезагрузка...');
+            window.location.reload(true);
+        } catch (e) {
+            console.error('Ошибка сброса кэша:', e);
+            window.location.reload();
+        }
     }
 
     handleModeInfo() {
