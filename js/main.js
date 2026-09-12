@@ -67,6 +67,39 @@ document.body.addEventListener('click', () => {
 
 // Запуск игры
 game.generateObstacles();
-game.loadBestSingleScore(); // Исправлено: вызываем метод напрямую
+game.loadBestSingleScore();
 game.updateTicker();
 game.updateHUD();
+
+// === PWA: установка и обновления ===
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    console.log('[PWA] Готово к установке');
+});
+
+window.addEventListener('appinstalled', () => {
+    console.log('[PWA] Приложение установлено');
+    deferredInstallPrompt = null;
+});
+
+// Глобальная функция для вызова установки из меню
+window.installPWA = async () => {
+    if (!deferredInstallPrompt) {
+        alert('Установка недоступна. Возможно, приложение уже установлено или браузер не поддерживает.');
+        return;
+    }
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log('[PWA] Выбор пользователя:', outcome);
+    deferredInstallPrompt = null;
+};
+
+// Обновление Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] Service Worker обновлён');
+    });
+}
