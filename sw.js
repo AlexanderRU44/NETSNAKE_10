@@ -1,6 +1,6 @@
 // sw.js — Service Worker для NETSNAKE 10
 // Меняй CACHE_VERSION при каждом обновлении файлов игры.
-const CACHE_VERSION = 'v2.2.1';
+const CACHE_VERSION = 'v2.2.2';
 const CACHE_NAME = `netsnake-${CACHE_VERSION}`;
 
 // Файлы, нужные для работы игры (обязательный кэш)
