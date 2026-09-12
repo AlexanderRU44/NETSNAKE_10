@@ -31,7 +31,6 @@ export class GameStateHandler {
             return;
         }
 
-        // === ПОКУПКА В МАГАЗИНЕ ===
         if (this.game.currentScreen === "SHOP") {
             this.handleShopPurchase();
             return;
@@ -97,26 +96,21 @@ export class GameStateHandler {
         }
     }
 
-    // === ЛОГИКА ПОКУПКИ В МАГАЗИНЕ ===
     handleShopPurchase() {
         const item = SHOP_ITEMS[this.game.shopSelection];
         if (!item) return;
 
-        // Уже куплено (кроме расходников)
         if (item.type !== 'consumable' && this.game.currency.has(item.id)) {
             return;
         }
 
-        // Не хватает кристаллов
         if (this.game.currency.crystals < item.price) {
             playSound('die', this.game.soundEnabled);
             return;
         }
 
-        // Списываем
         if (!this.game.currency.spend(item.price)) return;
 
-        // Применяем
         if (item.type === 'skin') {
             this.game.currency.markPurchased(item.id);
             this.game.currentSnakeColorIdx = item.colorIdx;
@@ -155,8 +149,15 @@ export class GameStateHandler {
         } else if (s === 3) {
             this.game.openNameInput();
         } else if (s === 4) {
-            let nextColorIdx = (this.game.currentSnakeColorIdx + 1) % snakeColors.length;
-            if (nextColorIdx === 4 && !isChameleonUnlocked) nextColorIdx = 0;
+            // Переключение только между открытыми скинами
+            let nextColorIdx = this.game.currentSnakeColorIdx;
+            let attempts = 0;
+            do {
+                nextColorIdx = (nextColorIdx + 1) % snakeColors.length;
+                attempts++;
+                if (attempts > snakeColors.length) break;
+            } while (!this.game.currencyHasSkin(nextColorIdx));
+
             this.game.currentSnakeColorIdx = nextColorIdx;
             localStorage.setItem("snake_color_idx", this.game.currentSnakeColorIdx);
         } else if (s === 5) {
