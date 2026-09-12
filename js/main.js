@@ -22,6 +22,9 @@ const game = new Game(
     overlayLabel, btnSaveName
 );
 
+// === Ссылка для системы наград (tasks.js, achievements.js) ===
+window.gameRef = game;
+
 function updateNextFoodLabel() {
     if (nextFoodLabel) {
         nextFoodLabel.innerText = i18n[game.currentLang].nextFood;
@@ -85,7 +88,6 @@ window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
 });
 
-// Глобальная функция для вызова установки из меню
 window.installPWA = async () => {
     if (!deferredInstallPrompt) {
         alert('Установка недоступна. Возможно, приложение уже установлено или браузер не поддерживает.');
@@ -97,7 +99,6 @@ window.installPWA = async () => {
     deferredInstallPrompt = null;
 };
 
-// Обновление Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('[PWA] Service Worker обновлён');
