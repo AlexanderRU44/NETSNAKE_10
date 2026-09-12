@@ -52,7 +52,6 @@ export class MenuDrawer {
             ctx.beginPath();
             ctx.rect(30, 90, 340, 260);
             ctx.clip();
-            // МАГАЗИН добавлен вторым пунктом
             let options = this.game.gameOver ?
                 [t.newGame, t.shopMenu, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu] :
                 [t.continue, t.newGame, t.shopMenu, t.modesMenu, t.modeInfoMenu, t.settings, t.records, t.tasksMenu, t.achievementsMenu, t.aboutMenu];
@@ -67,10 +66,16 @@ export class MenuDrawer {
             });
             ctx.restore();
         } else if (this.game.currentScreen === "SETTINGS") {
+            // FIX: скины заблокированы, пока не куплены
+            const snakeColorNames = ["КЛАССИКА", "ЗЕЛЁНАЯ", "СИНЯЯ", "РУБИНОВАЯ", "РАДУЖНАЯ"];
+            const snakeColorNamesEN = ["CLASSIC", "GREEN", "BLUE", "RUBY", "RAINBOW"];
             let labelColor = t.locked;
-            if (isChameleonUnlocked || this.game.settingsMenuSelection !== 4 || this.game.currentSnakeColorIdx !== 4) {
-                labelColor = (this.game.currentLang === "RU") ? snakeColors[this.game.currentSnakeColorIdx].nameRU : snakeColors[this.game.currentSnakeColorIdx].nameEN;
-                if (this.game.currentSnakeColorIdx === 4 && !isChameleonUnlocked) labelColor = t.locked;
+
+            const owned = this.game.currencyHasSkin(this.game.currentSnakeColorIdx);
+            if (owned) {
+                labelColor = (this.game.currentLang === "RU")
+                    ? snakeColorNames[this.game.currentSnakeColorIdx]
+                    : snakeColorNamesEN[this.game.currentSnakeColorIdx];
             }
             let items = [
                 `${t.speed}:${t.speedModes[this.game.currentSpeedMode]}`,
@@ -102,7 +107,6 @@ export class MenuDrawer {
         } else if (this.game.currentScreen === "MODE_INFO") {
             this.drawModeInfoScreen();
         } else if (this.game.currentScreen === "SHOP") {
-            // Магазин рисуется через shopDrawer, но на всякий случай
             if (this.game.shopDrawer) this.game.shopDrawer.draw();
         }
     }
