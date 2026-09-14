@@ -1,9 +1,7 @@
 // sw.js — Service Worker для NETSNAKE 10
-// Меняй CACHE_VERSION при каждом обновлении файлов игры.
-const CACHE_VERSION = 'v2.3.5';
+const CACHE_VERSION = 'v2.4.0';
 const CACHE_NAME = `netsnake-${CACHE_VERSION}`;
 
-// Файлы, нужные для работы игры (обязательный кэш)
 const PRECACHE_URLS = [
     './',
     './index.html',
@@ -41,13 +39,15 @@ const PRECACHE_URLS = [
     './js/currency.js',
     './js/shop.js',
     './js/shopDrawer.js',
+    // === МУЗЫКА ===
+    './audio/bg-music.ogg',
     // === ИКОНКИ ===
     './icons/icon-192.png',
     './icons/icon-512.png',
     './icons/icon-maskable-512.png'
 ];
 
-// === Установка: кэшируем всё нужное ===
+// === Установка ===
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -62,7 +62,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// === Активация: удаляем старые кэши ===
+// === Активация ===
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
@@ -82,18 +82,16 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Пропускаем не-GET запросы
     if (request.method !== 'GET') return;
 
-    // Firebase и внешние API — только сеть, без кэша
+    // Firebase и внешние API — только сеть
     if (url.hostname.includes('firebase') ||
         url.hostname.includes('googleapis') ||
-        url.hostname.includes('gstatic') ||
-        url.hostname.includes('zvukogram')) {
+        url.hostname.includes('gstatic')) {
         return;
     }
 
-    // Навигационные запросы — сеть, при ошибке оффлайн-страница
+    // Навигационные запросы
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
@@ -102,7 +100,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Остальные файлы — Cache First
+    // Cache First
     event.respondWith(
         caches.match(request).then((cached) => {
             if (cached) return cached;

@@ -2,6 +2,10 @@ export let audioCtx = null;
 export let bgMusic = null;
 let musicEnabled = true;
 
+// === ПУТЬ К МУЗЫКЕ ===
+// Если трек .mp3 — замени 'audio/bg-music.ogg' на 'audio/bg-music.mp3'
+const MUSIC_PATH = 'audio/bg-music.ogg';
+
 // --- Инициализация звука ---
 export function initAudio() {
     if (!audioCtx) {
@@ -13,10 +17,10 @@ export function initAudio() {
     return audioCtx;
 }
 
-// --- Управление фоновой музыкой ---
+// --- Фоновая музыка ---
 export function initBackgroundMusic() {
     if (!bgMusic) {
-        bgMusic = new Audio('https://zvukogram.com/index.php?r=site/download&id=89396&type=mp3');
+        bgMusic = new Audio(MUSIC_PATH);
         bgMusic.loop = true;
         bgMusic.volume = 0.2;
         bgMusic.addEventListener('canplaythrough', () => console.log("Music loaded"));
@@ -47,21 +51,22 @@ export function updateMusicBySound(soundEnabled) {
     }
 }
 
-// --- Звуковые эффекты ---
+// --- Вибрация ---
 export function triggerVibration() {
     if (navigator.vibrate) navigator.vibrate(5);
 }
 
+// --- Звуковые эффекты ---
 export function playSound(type, soundEnabled) {
     if (!soundEnabled) return;
     initAudio();
     if (!audioCtx) return;
-    
+
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    
+
     switch(type) {
         case "eat":
             osc.frequency.value = 523.25;
@@ -172,7 +177,7 @@ export function playSound(type, soundEnabled) {
 }
 
 export const snakeColors = [
-    { nameRU: "КЛАССИКА", nameEN: "CLASSIC", hex: "DYNAMIC", eyeHex: "DYNAMIC" }, 
+    { nameRU: "КЛАССИКА", nameEN: "CLASSIC", hex: "DYNAMIC", eyeHex: "DYNAMIC" },
     { nameRU: "ЗЕЛЕНЫЙ", nameEN: "GREEN", hex: "#38ff38", eyeHex: "#111" },
     { nameRU: "СИНИЙ", nameEN: "BLUE", hex: "#0044ff", eyeHex: "#ffffff" },
     { nameRU: "РУБИН", nameEN: "RUBY", hex: "#b30000", eyeHex: "#ffffff" },
@@ -191,11 +196,11 @@ export function addFloatingScore(floatingScores, x, y, text, lang = "RU") {
     else if (text === "SHRINK") displayText = (lang === "RU") ? "УМЕНЬШЕНИЕ" : "SHRINK";
     else if (text === "SHIELD") displayText = (lang === "RU") ? "ЩИТ!" : "SHIELD!";
     else displayText = text;
-    floatingScores.push({ 
-        x: x * 20 + 10, 
+    floatingScores.push({
+        x: x * 20 + 10,
         y: y * 20 - 15,
-        text: displayText, 
-        alpha: 1.0, 
-        life: 15 
+        text: displayText,
+        alpha: 1.0,
+        life: 15
     });
 }
