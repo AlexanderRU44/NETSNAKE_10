@@ -1,5 +1,5 @@
 // sw.js — Service Worker для NETSNAKE 10
-const CACHE_VERSION = 'v2.6.0';
+const CACHE_VERSION = 'v2.6.1';
 const CACHE_NAME = `netsnake-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
