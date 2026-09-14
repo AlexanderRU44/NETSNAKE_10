@@ -21,7 +21,7 @@ export function initBackgroundMusic() {
     if (!bgMusic) {
         bgMusic = new Audio(MUSIC_PATH);
         bgMusic.loop = true;
-        bgMusic.volume = 0.2;
+        bgMusic.volume = 0.1;
         bgMusic.addEventListener('canplaythrough', () => console.log("Music loaded"));
         bgMusic.addEventListener('error', (e) => console.error("Music error:", e));
     }
