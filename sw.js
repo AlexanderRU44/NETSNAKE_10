@@ -1,5 +1,5 @@
 // sw.js — Service Worker для NETSNAKE 10
-const CACHE_VERSION = 'v2.4.0';
+const CACHE_VERSION = 'v2.4.1';
 const CACHE_NAME = `netsnake-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -40,7 +40,7 @@ const PRECACHE_URLS = [
     './js/shop.js',
     './js/shopDrawer.js',
     // === МУЗЫКА ===
-    './audio/bg-music.ogg',
+    './audio/bg-music.mp3',
     // === ИКОНКИ ===
     './icons/icon-192.png',
     './icons/icon-512.png',

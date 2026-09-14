@@ -2,9 +2,8 @@ export let audioCtx = null;
 export let bgMusic = null;
 let musicEnabled = true;
 
-// === ПУТЬ К МУЗЫКЕ ===
-// Если трек .mp3 — замени 'audio/bg-music.ogg' на 'audio/bg-music.mp3'
-const MUSIC_PATH = 'audio/bg-music.ogg';
+// === ПУТЬ К МУЗЫКЕ (.mp3) ===
+const MUSIC_PATH = 'audio/bg-music.mp3';
 
 // --- Инициализация звука ---
 export function initAudio() {
