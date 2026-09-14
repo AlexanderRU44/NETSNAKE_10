@@ -14,7 +14,7 @@ export class CollisionChecker {
         const headX = h.x;
         const headY = h.y;
 
-        // Сбор рубинов (всегда)
+        // === СБОР РУБИНОВ (всегда) ===
         if (this.game.rubies && this.game.rubies.length) {
             for (let i = this.game.rubies.length - 1; i >= 0; i--) {
                 const r = this.game.rubies[i];
@@ -44,49 +44,61 @@ export class CollisionChecker {
             this.game.goldDistanceBeforeDeath = null;
         }
 
-        // === СТЕНЫ (режимы 1 и 10) ===
+        // === ХЕЛПЕР: попытка умереть с учётом щита ===
+        const tryDie = () => {
+            if (this.game.shieldActive) {
+                // Щит спасает — выключаем и играем звук
+                this.game.shieldActive = false;
+                playSound("shieldBreak", this.game.soundEnabled);
+                if (this.game.particleSystem) {
+                    this.game.particleSystem.addExplosion(headX, headY, "#1e88e5", 12);
+                }
+                import('./utils.js').then(({ addFloatingScore }) => {
+                    addFloatingScore(this.game.floatingScores, headX, headY, "SHIELD!", this.game.currentLang);
+                });
+                return false;
+            }
+            this.game.endGame();
+            return true;
+        };
+
+        // === СТЕНЫ (режим 1) ===
         if (this.game.currentModeIdx === 1) {
             if (headX < 0 || headX >= this.game.tileCount || headY < 0 || headY >= this.game.tileCount) {
-                this.game.endGame();
-                return true;
+                return tryDie();
             }
         }
-        // В лабиринте стены — это obstacles, проверяются ниже
 
-        // Столкновение с собой
+        // === Столкновение с собой ===
         for (let i = 1; i < this.game.snake.length; i++) {
             if (headX === this.game.snake[i].x && headY === this.game.snake[i].y) {
-                this.game.endGame();
-                return true;
+                return tryDie();
             }
         }
 
-        // Камни + лабиринт (режимы 2, 4, 10)
+        // === Камни + лабиринт (режимы 2, 4, 10) ===
         if ([2, 4, 10].includes(this.game.currentModeIdx) && this.game.obstacles.length) {
             for (let obs of this.game.obstacles) {
                 if (obs.x === headX && obs.y === headY) {
-                    this.game.endGame();
-                    return true;
+                    return tryDie();
                 }
             }
         }
 
-        // Призрачные следы (режим 3)
+        // === Призрачные следы (режим 3) ===
         if (this.game.currentModeIdx === 3 && this.game.ghostTrails.length) {
             for (let gt of this.game.ghostTrails) {
                 if (gt.x === headX && gt.y === headY) {
-                    this.game.endGame();
-                    return true;
+                    return tryDie();
                 }
             }
         }
 
-        // AI соперник (режим 5)
+        // === AI соперник (режим 5) ===
         if (this.game.currentModeIdx === 5 && this.game.aiOpponent) {
             for (let seg of this.game.aiOpponent.snake) {
                 if (seg.x === headX && seg.y === headY) {
-                    this.game.endGame();
-                    return true;
+                    return tryDie();
                 }
             }
         }
