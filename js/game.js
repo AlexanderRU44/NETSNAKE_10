@@ -20,7 +20,7 @@ import { SpecialModes } from './specialModes.js';
 import { ParticleSystem } from './particleSystem.js';
 import { Currency } from './currency.js';
 import { ShopDrawer } from './shopDrawer.js';
-import { SHOP_ITEMS, getModeItemByModeIdx } from './shop.js';
+import { SHOP_ITEMS } from './shop.js';
 import {
     audioCtx, initAudio, triggerVibration, playSound, snakeColors, speeds,
     maxBigFoodTime, maxShrinkTime, maxTurboTime, addFloatingScore,
@@ -130,10 +130,8 @@ export class Game {
         this.modesScrollY = 0;
         this.dialogSelection = 0;
 
-        // Модальное окно подтверждения режима
         this.unlockDialogModeIdx = -1;
 
-        // Эндлесс
         this.endlessTick = 0;
         this.endlessSpeedLevel = 0;
 
@@ -330,20 +328,16 @@ export class Game {
         }
     }
 
-    // === ЭНДЛЕСС — ускорение ===
     updateEndlessMode(deltaMs) {
         if (this.currentModeIdx !== 12) return;
         this.endlessTick += deltaMs;
-        // Каждые 30 секунд ускоряемся
         if (this.endlessTick >= 30000) {
             this.endlessTick = 0;
             this.endlessSpeedLevel++;
             if (this.endlessSpeedLevel > 5) this.endlessSpeedLevel = 5;
-            // Меняем скорость (от 100 до 40)
             const newSpeed = Math.max(40, 100 - this.endlessSpeedLevel * 12);
             this.speeds[1] = newSpeed;
             this.updateTicker();
-            const t = this.i18n[this.currentLang];
             addFloatingScore(this.floatingScores, this.snake[0].x, this.snake[0].y, `SPEED ${this.endlessSpeedLevel + 1}`, this.currentLang);
         }
     }
@@ -354,7 +348,6 @@ export class Game {
         this.isPaused = true;
         this.isTurboActive = false;
 
-        // Проверка времени для "ночной житель" и "ранняя птица"
         const hour = new Date().getHours();
         if (hour >= 0 && hour < 5) unlockAchievement("nightOwl", achievements);
         if (hour >= 5 && hour < 7) unlockAchievement("earlyBird", achievements);
@@ -418,7 +411,6 @@ export class Game {
         this.endlessTick = 0;
         this.endlessSpeedLevel = 0;
 
-        // Сброс скорости для эндлесса
         this.speeds[1] = 100;
 
         this.foodLogic.resetShield();
@@ -444,7 +436,6 @@ export class Game {
         }
         this.generateObstacles();
 
-        // Если еда попала на стену лабиринта — перегенерируем
         if (this.currentModeIdx === 10 && this.food &&
             this.obstacles.some(o => o.x === this.food.x && o.y === this.food.y)) {
             this.generateFood();
@@ -772,7 +763,6 @@ export class Game {
             if (this.currentModeIdx === 8) this.renderer.drawCoins(this.specialModes.coins);
             if (this.currentModeIdx === 9) this.renderer.drawPortals(this.specialModes.portals);
 
-            // === НОЧНОЙ РЕЖИМ — туман поверх всего ===
             if (this.currentModeIdx === 11) {
                 this.renderer.drawNightFog(this.snake[0].x, this.snake[0].y, 4);
             }

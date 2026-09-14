@@ -177,6 +177,74 @@ export class MenuDrawer {
         ctx.fillText(t.back, 200, 365);
     }
 
+    // === ОКНО ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
+    drawResetCacheDialog() {
+        const t = i18n[this.game.currentLang];
+        const ctx = this.ctx;
+        const isDark = this.game.isDarkTheme;
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+
+        const boxW = 320;
+        const boxH = 180;
+        const boxX = 40;
+        const boxY = 110;
+
+        ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Заголовок
+        ctx.fillStyle = "#ff5c5c";
+        ctx.font = "13px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.resetCacheConfirm, 200, boxY + 45);
+
+        // Описание
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "7px 'Press Start 2P'";
+        ctx.fillText(t.resetCacheHint, 200, boxY + 70);
+
+        // Разделитель
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(boxX + 20, boxY + 90);
+        ctx.lineTo(boxX + boxW - 20, boxY + 90);
+        ctx.stroke();
+
+        // Кнопки
+        const yesSelected = this.game.dialogSelection === 0;
+        const noSelected = this.game.dialogSelection === 1;
+
+        if (yesSelected) {
+            ctx.fillStyle = "#7ed321";
+            ctx.fillRect(70, boxY + 115, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(70, boxY + 115, 100, 40);
+            ctx.fillStyle = "#8b949e";
+        }
+        ctx.font = "12px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.resetCacheYes, 120, boxY + 142);
+
+        if (noSelected) {
+            ctx.fillStyle = "#ff5c5c";
+            ctx.fillRect(230, boxY + 115, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(230, boxY + 115, 100, 40);
+            ctx.fillStyle = "#8b949e";
+        }
+        ctx.fillText(t.resetCacheNo, 280, boxY + 142);
+    }
+
     // === ОКНО РАЗБЛОКИРОВКИ РЕЖИМА ===
     drawUnlockModeDialog(modeIdx) {
         const t = i18n[this.game.currentLang];
@@ -186,7 +254,6 @@ export class MenuDrawer {
 
         if (!price) return;
 
-        // Затемнение
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
         ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
@@ -201,33 +268,27 @@ export class MenuDrawer {
         ctx.lineWidth = 3;
         ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-        // Заголовок
         ctx.fillStyle = "#ffd700";
         ctx.font = "11px 'Press Start 2P'";
         ctx.textAlign = "center";
         ctx.fillText(t.unlockModeConfirm, 200, boxY + 35);
 
-        // Название режима
         ctx.fillStyle = "#ffffff";
         ctx.font = "10px 'Press Start 2P'";
         ctx.fillText(t.gameModes[modeIdx], 200, boxY + 65);
 
-        // Цена
         ctx.fillStyle = "#00d4ff";
         ctx.font = "11px 'Press Start 2P'";
         ctx.fillText(`${price} 💎`, 200, boxY + 95);
 
-        // Баланс игрока
         ctx.fillStyle = "#8b949e";
         ctx.font = "7px 'Press Start 2P'";
         ctx.fillText(`У ВАС: ${this.game.currency.crystals} 💎`, 200, boxY + 115);
 
-        // Кнопки
         const yesSelected = this.game.dialogSelection === 0;
         const noSelected = this.game.dialogSelection === 1;
         const canAfford = this.game.currency.crystals >= price;
 
-        // Кнопка ДА
         if (yesSelected && canAfford) {
             ctx.fillStyle = "#7ed321";
             ctx.fillRect(70, boxY + 135, 100, 40);
@@ -240,7 +301,6 @@ export class MenuDrawer {
         ctx.font = "12px 'Press Start 2P'";
         ctx.fillText(t.resetCacheYes, 120, boxY + 162);
 
-        // Кнопка НЕТ
         if (noSelected) {
             ctx.fillStyle = "#ff5c5c";
             ctx.fillRect(230, boxY + 135, 100, 40);
@@ -252,7 +312,6 @@ export class MenuDrawer {
         }
         ctx.fillText(t.resetCacheNo, 280, boxY + 162);
 
-        // Подсказка если не хватает
         if (!canAfford) {
             ctx.fillStyle = "#ff5c5c";
             ctx.font = "7px 'Press Start 2P'";
