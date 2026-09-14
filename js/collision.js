@@ -16,14 +16,14 @@ export class CollisionChecker {
         const headX = h.x;
         const headY = h.y;
 
-        // === СБОР РУБИНОВ ===
+        // === СБОР РУБИНОВ (синие) ===
         if (this.game.rubies && this.game.rubies.length) {
             for (let i = this.game.rubies.length - 1; i >= 0; i--) {
                 const r = this.game.rubies[i];
                 if (r.x === headX && r.y === headY) {
                     this.game.currency.add(RUBY_VALUE);
                     playSound("giftEat", this.game.soundEnabled);
-                    this.game.particleSystem.addExplosion(r.x, r.y, "#ff2d55", 10);
+                    this.game.particleSystem.addExplosion(r.x, r.y, "#00d4ff", 10);
                     this.game.rubies.splice(i, 1);
                     // Всплывашка "+3"
                     import('./utils.js').then(({ addFloatingScore }) => {
@@ -33,7 +33,7 @@ export class CollisionChecker {
             }
         }
 
-        // Портал не убивает (режим 9) - но нужно продолжить проверку других коллизий
+        // Портал не убивает (режим 9)
         let isOnPortal = false;
         if (this.game.currentModeIdx === 9 && this.game.specialModes.isPortalCell(headX, headY)) {
             isOnPortal = true;

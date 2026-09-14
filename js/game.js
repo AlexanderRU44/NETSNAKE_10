@@ -297,7 +297,7 @@ export class Game {
             if (!occupied) {
                 this.rubies.push({ x, y, ttl: RUBY_LIFETIME });
                 if (this.particleSystem) {
-                    this.particleSystem.addExplosion(x, y, "#ff2d55", 6);
+                    this.particleSystem.addExplosion(x, y, "#00d4ff", 6);
                 }
                 return;
             }
@@ -316,7 +316,7 @@ export class Game {
             this.rubies[i].ttl -= deltaMs;
             if (this.rubies[i].ttl <= 0) {
                 if (this.particleSystem) {
-                    this.particleSystem.addExplosion(this.rubies[i].x, this.rubies[i].y, "#8b0000", 4);
+                    this.particleSystem.addExplosion(this.rubies[i].x, this.rubies[i].y, "#0077b3", 4);
                 }
                 this.rubies.splice(i, 1);
             }
