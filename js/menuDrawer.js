@@ -2,7 +2,7 @@ import { i18n } from './i18n.js';
 import { tasks } from './tasks.js';
 import { achievements, isChameleonUnlocked } from './achievements.js';
 import { snakeColors } from './utils.js';
-import { getModeItemByModeIdx } from './shop.js';
+import { getModePriceByModeIdx } from './shop.js';
 
 export class MenuDrawer {
     constructor(ctx, game) {
@@ -96,7 +96,7 @@ export class MenuDrawer {
             ctx.textAlign = "center";
             ctx.font = "10px 'Press Start 2P'";
             ctx.fillText(t.back, 200, 368);
-        } else if (this.game.currentScreen === "MODES") {
+        } else if (this.game.currentScreen === "MODES" || this.game.currentScreen === "UNLOCK_MODE_CONFIRM") {
             this.drawModesScreen();
         } else if (this.game.currentScreen === "LEADERBOARD") {
             this.drawLeaderboardScreen();
@@ -182,9 +182,9 @@ export class MenuDrawer {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
         const isDark = this.game.isDarkTheme;
-        const item = getModeItemByModeIdx(modeIdx);
+        const price = getModePriceByModeIdx(modeIdx);
 
-        if (!item) return;
+        if (!price) return;
 
         // Затемнение
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -210,13 +210,12 @@ export class MenuDrawer {
         // Название режима
         ctx.fillStyle = "#ffffff";
         ctx.font = "10px 'Press Start 2P'";
-        const name = (this.game.currentLang === "RU") ? item.nameRU : item.nameEN;
-        ctx.fillText(name, 200, boxY + 65);
+        ctx.fillText(t.gameModes[modeIdx], 200, boxY + 65);
 
         // Цена
         ctx.fillStyle = "#00d4ff";
         ctx.font = "11px 'Press Start 2P'";
-        ctx.fillText(`${item.price} 💎`, 200, boxY + 95);
+        ctx.fillText(`${price} 💎`, 200, boxY + 95);
 
         // Баланс игрока
         ctx.fillStyle = "#8b949e";
@@ -226,7 +225,7 @@ export class MenuDrawer {
         // Кнопки
         const yesSelected = this.game.dialogSelection === 0;
         const noSelected = this.game.dialogSelection === 1;
-        const canAfford = this.game.currency.crystals >= item.price;
+        const canAfford = this.game.currency.crystals >= price;
 
         // Кнопка ДА
         if (yesSelected && canAfford) {

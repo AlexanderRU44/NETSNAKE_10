@@ -2,7 +2,7 @@ import { initAudio, updateMusicBySound, playSound } from './utils.js';
 import { unlockAchievement, isChameleonUnlocked } from './achievements.js';
 import { achievements } from './achievements.js';
 import { snakeColors } from './utils.js';
-import { SHOP_ITEMS, getModeItemByModeIdx } from './shop.js';
+import { SHOP_ITEMS, getModePriceByModeIdx } from './shop.js';
 
 export class GameStateHandler {
     constructor(game) {
@@ -26,13 +26,11 @@ export class GameStateHandler {
         if (this.game.currentScreen === "UNLOCK_MODE_CONFIRM") {
             const modeIdx = this.game.unlockDialogModeIdx;
             if (this.game.dialogSelection === 0) {
-                const item = getModeItemByModeIdx(modeIdx);
-                if (item && this.game.currency.crystals >= item.price) {
-                    if (this.game.currency.spend(item.price)) {
+                const price = getModePriceByModeIdx(modeIdx);
+                if (price > 0 && this.game.currency.crystals >= price) {
+                    if (this.game.currency.spend(price)) {
                         this.game.currency.unlockMode(modeIdx);
-                        this.game.currency.markPurchased(item.id);
                         playSound('taskComplete', this.game.soundEnabled);
-                        // Автоматически выбираем этот режим
                         this.game.modesMenuSelection = modeIdx;
                     }
                 } else {
@@ -132,7 +130,6 @@ export class GameStateHandler {
         const item = SHOP_ITEMS[this.game.shopSelection];
         if (!item) return;
 
-        // Уже куплено (кроме расходников)
         if (item.type !== 'consumable' && this.game.currency.has(item.id)) {
             return;
         }
@@ -148,10 +145,6 @@ export class GameStateHandler {
             this.game.currency.markPurchased(item.id);
             this.game.currentSnakeColorIdx = item.colorIdx;
             localStorage.setItem('snake_color_idx', item.colorIdx);
-        } else if (item.type === 'mode') {
-            // Разблокировка режима
-            this.game.currency.markPurchased(item.id);
-            this.game.currency.unlockMode(item.modeIdx);
         } else if (item.type === 'permanent') {
             this.game.currency.markPurchased(item.id);
         } else if (item.type === 'consumable') {
@@ -166,14 +159,12 @@ export class GameStateHandler {
         const unlocked = this.game.currency.isModeUnlocked(selectedIdx);
 
         if (!unlocked) {
-            // Открываем диалог разблокировки
             this.game.unlockDialogModeIdx = selectedIdx;
             this.game.dialogSelection = 0;
             this.game.currentScreen = "UNLOCK_MODE_CONFIRM";
             return;
         }
 
-        // Если разблокирован — запускаем
         this.game.currentModeIdx = selectedIdx;
         this.game.updateHUD();
         this.game.loadBestSingleScore();
