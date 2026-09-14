@@ -10,13 +10,11 @@ export class CollisionChecker {
     }
 
     checkCollision() {
-        if (this.game.aiMode) return;
-
         const h = this.game.snake[0];
         const headX = h.x;
         const headY = h.y;
 
-        // === СБОР РУБИНОВ (синие) ===
+        // === СБОР РУБИНОВ (работает ВСЕГДА, включая AI-режим) ===
         if (this.game.rubies && this.game.rubies.length) {
             for (let i = this.game.rubies.length - 1; i >= 0; i--) {
                 const r = this.game.rubies[i];
@@ -32,6 +30,9 @@ export class CollisionChecker {
                 }
             }
         }
+
+        // === AI-режим — пропускаем проверки на смерть ===
+        if (this.game.aiMode) return;
 
         // Портал не убивает (режим 9)
         let isOnPortal = false;
