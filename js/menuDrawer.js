@@ -65,8 +65,7 @@ export class MenuDrawer {
                 ctx.fillText(opt, 75, y);
             });
             ctx.restore();
-        } else if (this.game.currentScreen === "SETTINGS") {
-            // Скины заблокированы, пока не куплены
+        } else if (this.game.currentScreen === "SETTINGS" || this.game.currentScreen === "RESET_CACHE_CONFIRM") {
             const snakeColorNames = ["КЛАССИКА", "ЗЕЛЁНАЯ", "СИНЯЯ", "РУБИНОВАЯ", "РАДУЖНАЯ"];
             const snakeColorNamesEN = ["CLASSIC", "GREEN", "BLUE", "RUBY", "RAINBOW"];
             let labelColor = t.locked;
@@ -87,7 +86,7 @@ export class MenuDrawer {
                 `⚠ ${t.resetCache}`
             ];
             items.forEach((txt, i) => {
-                let y = 115 + (i * 34);
+                let y = 110 + (i * 30);
                 if (this.game.settingsMenuSelection === i) ctx.fillText(">", 35, y);
                 ctx.fillText(txt, 65, y);
             });
@@ -95,17 +94,7 @@ export class MenuDrawer {
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
             ctx.font = "10px 'Press Start 2P'";
-            ctx.fillText(t.back, 200, 345);
-
-            // Если выбран пункт "СБРОСИТЬ КЭШ" — предупреждение
-            if (this.game.settingsMenuSelection === 6) {
-                ctx.fillStyle = "#ff5c5c";
-                ctx.font = "8px 'Press Start 2P'";
-                ctx.fillText(t.resetCacheConfirm, 200, 300);
-                ctx.fillStyle = "#8b949e";
-                ctx.font = "7px 'Press Start 2P'";
-                ctx.fillText(t.resetCacheHint, 200, 316);
-            }
+            ctx.fillText(t.back, 200, 368);
         } else if (this.game.currentScreen === "MODES") {
             this.drawModesScreen();
         } else if (this.game.currentScreen === "LEADERBOARD") {
@@ -121,6 +110,84 @@ export class MenuDrawer {
         } else if (this.game.currentScreen === "SHOP") {
             if (this.game.shopDrawer) this.game.shopDrawer.draw();
         }
+    }
+
+    // === ОКНО ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
+    drawResetCacheDialog() {
+        const t = i18n[this.game.currentLang];
+        const ctx = this.ctx;
+        const isDark = this.game.isDarkTheme;
+
+        // Затемнение фона
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+
+        // Панель диалога
+        const boxW = 320;
+        const boxH = 180;
+        const boxX = 40;
+        const boxY = 110;
+
+        ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Заголовок
+        ctx.fillStyle = "#ff5c5c";
+        ctx.font = "13px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.resetCacheConfirm, 200, boxY + 45);
+
+        // Описание
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "7px 'Press Start 2P'";
+        ctx.fillText(t.resetCacheHint, 200, boxY + 70);
+
+        // Разделитель
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(boxX + 20, boxY + 90);
+        ctx.lineTo(boxX + boxW - 20, boxY + 90);
+        ctx.stroke();
+
+        // Кнопки ДА / НЕТ
+        const yesSelected = this.game.dialogSelection === 0;
+        const noSelected = this.game.dialogSelection === 1;
+
+        // Кнопка ДА
+        if (yesSelected) {
+            ctx.fillStyle = "#7ed321";
+            ctx.fillRect(70, boxY + 115, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(70, boxY + 115, 100, 40);
+            ctx.fillStyle = "#8b949e";
+        }
+        ctx.font = "12px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.resetCacheYes, 120, boxY + 142);
+
+        // Кнопка НЕТ
+        if (noSelected) {
+            ctx.fillStyle = "#ff5c5c";
+            ctx.fillRect(230, boxY + 115, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(230, boxY + 115, 100, 40);
+            ctx.fillStyle = "#8b949e";
+        }
+        ctx.fillText(t.resetCacheNo, 280, boxY + 142);
+
+        // Подсказка снизу
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "7px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText("◀ ▶ - ВЫБОР  |  OK - ПОДТВЕРДИТЬ", 200, boxY + boxH + 25);
     }
 
     drawModesScreen() {

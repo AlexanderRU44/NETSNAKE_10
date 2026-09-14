@@ -51,6 +51,8 @@ export const i18n = {
         resetCache: "СБРОСИТЬ КЭШ",
         resetCacheConfirm: "ОБНОВИТЬ ИГРУ?",
         resetCacheHint: "OK - ОБНОВИТЬ",
+        resetCacheYes: "ДА",
+        resetCacheNo: "НЕТ",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
             score100: "ЛОВКАЧ", score100Desc: "НАБЕРИТЕ 100 ОЧКОВ",
@@ -190,6 +192,8 @@ export const i18n = {
         resetCache: "CLEAR CACHE",
         resetCacheConfirm: "UPDATE GAME?",
         resetCacheHint: "OK - UPDATE",
+        resetCacheYes: "YES",
+        resetCacheNo: "NO",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
             score100: "NIMBLE", score100Desc: "REACH 100 POINTS",

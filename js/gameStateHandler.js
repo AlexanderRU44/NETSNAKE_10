@@ -12,6 +12,18 @@ export class GameStateHandler {
     async handleCenter() {
         initAudio();
 
+        // === ДИАЛОГ ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
+        if (this.game.currentScreen === "RESET_CACHE_CONFIRM") {
+            if (this.game.dialogSelection === 0) {
+                // ДА — сбрасываем
+                this.resetCache();
+            } else {
+                // НЕТ — возвращаемся в ОПЦИИ
+                this.game.currentScreen = "SETTINGS";
+            }
+            return;
+        }
+
         if (this.game.currentScreen === "INTRO") {
             if (this.game.introScreen.isReady()) {
                 this.game.currentScreen = "MAIN";
@@ -169,9 +181,10 @@ export class GameStateHandler {
             this.game.themeChangesCount++;
             if (this.game.themeChangesCount >= 5) unlockAchievement("identityCrisis", achievements);
         } else if (s === 6) {
-            // === СБРОС КЭША И ОБНОВЛЕНИЕ ===
-            this.resetCache();
-            return; // не вызываем updateMiniDisplay, т.к. страница перезагрузится
+            // Открываем диалог подтверждения
+            this.game.currentScreen = "RESET_CACHE_CONFIRM";
+            this.game.dialogSelection = 0; // 0 = ДА, 1 = НЕТ
+            return;
         }
         this.game.updateMiniDisplay();
     }
@@ -179,21 +192,18 @@ export class GameStateHandler {
     // === Метод сброса кэша и перезагрузки ===
     async resetCache() {
         try {
-            // 1. Удаляем все кэши Service Worker
             if ('caches' in window) {
                 const keys = await caches.keys();
                 await Promise.all(keys.map(key => caches.delete(key)));
                 console.log('[Cache] Удалены кэши:', keys);
             }
 
-            // 2. Снимаем регистрацию Service Worker
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 await Promise.all(registrations.map(reg => reg.unregister()));
                 console.log('[SW] Регистрации удалены:', registrations.length);
             }
 
-            // 3. Перезагружаем страницу
             console.log('[Cache] Перезагрузка...');
             window.location.reload(true);
         } catch (e) {

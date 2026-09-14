@@ -130,6 +130,9 @@ export class Game {
 
         this.modesScrollY = 0;
 
+        // === ДИАЛОГ ПОДТВЕРЖДЕНИЯ ===
+        this.dialogSelection = 0;   // 0 = ДА, 1 = НЕТ
+
         this.shieldActive = false;
         this.particleSystem = new ParticleSystem(this);
 
@@ -455,6 +458,10 @@ export class Game {
 
     handleMenuPress() {
         initAudio();
+        if (this.currentScreen === "RESET_CACHE_CONFIRM") {
+            this.currentScreen = "SETTINGS";
+            return;
+        }
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
             if (!this.isPaused) this.isPaused = true;
             this.currentScreen = "MAIN";
@@ -463,6 +470,10 @@ export class Game {
 
     handleBackPress() {
         initAudio();
+        if (this.currentScreen === "RESET_CACHE_CONFIRM") {
+            this.currentScreen = "SETTINGS";
+            return;
+        }
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
             if (["SETTINGS", "LEADERBOARD", "TASKS", "ACHIEVEMENTS", "MODES", "ABOUT", "MODE_INFO", "SHOP"].includes(this.currentScreen)) {
                 this.currentScreen = "MAIN";
@@ -558,6 +569,11 @@ export class Game {
                     this.shopScrollY = Math.max(0, Math.min(this.shopScrollY, maxScroll));
                 }
             }
+            // === НАВИГАЦИЯ В ДИАЛОГЕ ПОДТВЕРЖДЕНИЯ ===
+            else if (this.currentScreen === "RESET_CACHE_CONFIRM") {
+                if (act === "LEFT") this.dialogSelection = 0;
+                if (act === "RIGHT") this.dialogSelection = 1;
+            }
         }
     }
 
@@ -626,6 +642,10 @@ export class Game {
             else if (this.currentScreen === "ABOUT") this.menuDrawer.drawAboutScreen();
             else if (this.currentScreen === "MODE_INFO") this.menuDrawer.drawModeInfoScreen();
             else if (this.currentScreen === "SHOP") this.shopDrawer.draw();
+            else if (this.currentScreen === "RESET_CACHE_CONFIRM") {
+                this.menuDrawer.drawPixelMenu(t.settings);
+                this.menuDrawer.drawResetCacheDialog();
+            }
             return;
         }
 
