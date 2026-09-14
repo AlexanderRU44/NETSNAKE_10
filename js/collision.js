@@ -14,7 +14,7 @@ export class CollisionChecker {
         const headX = h.x;
         const headY = h.y;
 
-        // === СБОР РУБИНОВ (работает ВСЕГДА, включая AI-режим) ===
+        // Сбор рубинов (всегда)
         if (this.game.rubies && this.game.rubies.length) {
             for (let i = this.game.rubies.length - 1; i >= 0; i--) {
                 const r = this.game.rubies[i];
@@ -23,7 +23,6 @@ export class CollisionChecker {
                     playSound("giftEat", this.game.soundEnabled);
                     this.game.particleSystem.addExplosion(r.x, r.y, "#00d4ff", 10);
                     this.game.rubies.splice(i, 1);
-                    // Всплывашка "+3"
                     import('./utils.js').then(({ addFloatingScore }) => {
                         addFloatingScore(this.game.floatingScores, r.x, r.y, "+3", this.game.currentLang);
                     });
@@ -31,16 +30,13 @@ export class CollisionChecker {
             }
         }
 
-        // === AI-режим — пропускаем проверки на смерть ===
         if (this.game.aiMode) return;
 
-        // Портал не убивает (режим 9)
         let isOnPortal = false;
         if (this.game.currentModeIdx === 9 && this.game.specialModes.isPortalCell(headX, headY)) {
             isOnPortal = true;
         }
 
-        // Расстояние до золотого яблока (для достижения greed)
         if (this.game.foodType === "BIG" && this.game.food) {
             const distToGold = Math.abs(headX - this.game.food.x) + Math.abs(headY - this.game.food.y);
             this.game.goldDistanceBeforeDeath = distToGold;
@@ -48,11 +44,14 @@ export class CollisionChecker {
             this.game.goldDistanceBeforeDeath = null;
         }
 
-        // Стены (только для режима 1)
-        if (this.game.currentModeIdx === 1 && (headX < 0 || headX >= this.game.tileCount || headY < 0 || headY >= this.game.tileCount)) {
-            this.game.endGame();
-            return true;
+        // === СТЕНЫ (режимы 1 и 10) ===
+        if (this.game.currentModeIdx === 1) {
+            if (headX < 0 || headX >= this.game.tileCount || headY < 0 || headY >= this.game.tileCount) {
+                this.game.endGame();
+                return true;
+            }
         }
+        // В лабиринте стены — это obstacles, проверяются ниже
 
         // Столкновение с собой
         for (let i = 1; i < this.game.snake.length; i++) {
@@ -62,8 +61,8 @@ export class CollisionChecker {
             }
         }
 
-        // Камни (режимы 2 и 4)
-        if ((this.game.currentModeIdx === 2 || this.game.currentModeIdx === 4) && this.game.obstacles.length) {
+        // Камни + лабиринт (режимы 2, 4, 10)
+        if ([2, 4, 10].includes(this.game.currentModeIdx) && this.game.obstacles.length) {
             for (let obs of this.game.obstacles) {
                 if (obs.x === headX && obs.y === headY) {
                     this.game.endGame();
@@ -92,10 +91,7 @@ export class CollisionChecker {
             }
         }
 
-        if (isOnPortal) {
-            return false;
-        }
-
+        if (isOnPortal) return false;
         return false;
     }
 }

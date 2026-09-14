@@ -10,7 +10,6 @@ export class FoodLogic {
         this.shieldTimeout = null;
     }
 
-    // FIX: новый метод для сброса таймера щита при перезапуске игры
     resetShield() {
         if (this.shieldTimeout) {
             clearTimeout(this.shieldTimeout);
@@ -22,7 +21,7 @@ export class FoodLogic {
     generateFood() {
         if (this.game.currentModeIdx === 8) return;
 
-        const maxAttempts = 100;
+        const maxAttempts = 200;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const x = Math.floor(Math.random() * this.game.tileCount);
             const y = Math.floor(Math.random() * this.game.tileCount);
@@ -105,6 +104,20 @@ export class FoodLogic {
             unlockAchievement("hawkTactics", achievements);
         }
 
+        // === СНАЙПЕР ===
+        const hx = h.x;
+        const hy = h.y;
+        const t = this.game.tileCount;
+        const nearWall = (hx === 0 || hx === t - 1 || hy === 0 || hy === t - 1);
+        if (nearWall) {
+            unlockAchievement("sniper", achievements);
+        }
+
+        // === ПИКСЕЛЬ — счётчик съеденных яблок ===
+        this.game.totalApplesEaten = (this.game.totalApplesEaten || 0) + 1;
+        localStorage.setItem('snake_total_apples', this.game.totalApplesEaten);
+        if (this.game.totalApplesEaten >= 1000) unlockAchievement("pixel", achievements);
+
         if (this.game.foodType === "REGULAR") {
             this.processRegularFood(h);
         } else if (this.game.foodType === "BIG") {
@@ -120,6 +133,14 @@ export class FoodLogic {
         checkScoreTasks(this.game.score, tasks, (id, tasksObj) => completeTask(id, tasksObj,
             (type) => playSound(type, this.game.soundEnabled), () => this.game.spawnGift()),
             (id, ach) => unlockAchievement(id, ach), achievements);
+
+        // === МАРАФОНЕЦ ===
+        if (this.game.score >= 5000) unlockAchievement("marathon", achievements);
+
+        // === СПИДРАН ===
+        if (this.game.score >= 200 && this.game.currentSpeedMode === 2) {
+            unlockAchievement("speedRunner", achievements);
+        }
 
         if (this.game.foodType !== "TURBO" && this.game.foodType !== "SHIELD") {
             this.game.foodType = "REGULAR";
@@ -186,9 +207,7 @@ export class FoodLogic {
         addFloatingScore(this.game.floatingScores, h.x, h.y, "SHIELD", this.game.currentLang);
         this.game.regularApplesStreak = 0;
 
-        if (this.shieldTimeout) {
-            clearTimeout(this.shieldTimeout);
-        }
+        if (this.shieldTimeout) clearTimeout(this.shieldTimeout);
 
         this.shieldTimeout = setTimeout(() => {
             if (this.game.shieldActive) {

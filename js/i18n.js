@@ -14,7 +14,7 @@ export const i18n = {
         modeInfoMenu: "О РЕЖИМЕ",
         gameModes: [
             "КЛАССИКА", "СТЕНЫ", "КАМНИ", "ПРИЗРАК", "ДВИЖ. КАМНИ", "ПРОТИВ ИИ", "НА ВРЕМЯ", "БЕГУЩАЯ ЕДА",
-            "СБОР МОНЕТ", "ТЕЛЕПОРТЫ"
+            "СБОР МОНЕТ", "ТЕЛЕПОРТЫ", "ЛАБИРИНТ", "НОЧНОЙ", "ЭНДЛЕСС"
         ],
         modeDescriptions: [
             "Классическая змейка. Еда +1, длина растёт, стены телепортируют.",
@@ -26,7 +26,10 @@ export const i18n = {
             "60 секунд на выполнение. Каждая еда +5 секунд.",
             "Еда каждые 3 секунды перемещается на новое место.",
             "Собирайте золотые монеты (+1). Еды нет, змейка растёт.",
-            "2 портала на поле. Вход в один = телепорт в другой."
+            "2 портала на поле. Вход в один = телепорт в другой.",
+            "Лабиринт из стен. Ищи путь к еде, не врезайся в стены!",
+            "Видно только вокруг головы. Ориентируйся по памяти!",
+            "Бесконечный режим. Скорость постепенно растёт."
         ],
         modeInfoTitle: "ИНФОРМАЦИЯ О РЕЖИМЕ",
         modeInfoCurrent: "ТЕКУЩИЙ РЕЖИМ:",
@@ -53,6 +56,15 @@ export const i18n = {
         resetCacheHint: "OK - ОБНОВИТЬ",
         resetCacheYes: "ДА",
         resetCacheNo: "НЕТ",
+        // === РАЗБЛОКИРОВКА РЕЖИМОВ ===
+        lockedMode: "ЗАБЛОКИРОВАНО",
+        unlockMode: "РАЗБЛОКИРОВАТЬ",
+        unlockModeConfirm: "ОТКРЫТЬ РЕЖИМ?",
+        alreadyUnlocked: "УЖЕ ОТКРЫТО",
+        levelShort: "УР.",
+        endless: "ЭНДЛЕСС",
+        // === НОВЫЕ ЭЛЕМЕНТЫ ===
+        bigScore: "РЕКОРД БИТ!",
         taskList: {
             score50: "ПЕРВЫЙ ШАГ", score50Desc: "НАБЕРИТЕ 50 ОЧКОВ",
             score100: "ЛОВКАЧ", score100Desc: "НАБЕРИТЕ 100 ОЧКОВ",
@@ -72,7 +84,16 @@ export const i18n = {
             hawkTactics: "ТАКТИКА КОРШУНА", hawkTacticsDesc: "СЪЕШЬТЕ РЕДКОЕ ЯБЛОКО МЕНЕЕ ЧЕМ ЗА 5 ТИКОВ ДО ИСЧЕЗНОВЕНИЯ",
             dietMode: "ДИЕТА", dietModeDesc: "СЪЕШЬТЕ СИНЕЕ ЯБЛОКО ПРИ ДЛИНЕ ЗМЕЙКИ В 3 БЛОКА",
             identityCrisis: "КРИЗИС ИДЕНТИЧНОСТИ", identityCrisisDesc: "СМЕНИТЕ ТЕМУ ОФОРМЛЕНИЯ 5 РАЗ ЗА СЕССИЮ",
-            greed: "ЖАДНОСТЬ", greedDesc: "ПОГИБНИТЕ В ШАГЕ ОТ ЗОЛОТОГО ЯБЛОКА"
+            greed: "ЖАДНОСТЬ", greedDesc: "ПОГИБНИТЕ В ШАГЕ ОТ ЗОЛОТОГО ЯБЛОКА",
+            sniper: "СНАЙПЕР", sniperDesc: "СЪЕШЬТЕ ЕДУ В 1 КЛЕТКЕ ОТ СТЕНЫ",
+            marathon: "МАРАФОНЕЦ", marathonDesc: "НАБЕРИТЕ 5000 ОЧКОВ ЗА ЗАБЕГ",
+            hungry: "БЕЗ ЕДЫ", hungryDesc: "30 СЕКУНД НЕ ЕШЬ В РЕЖИМЕ НА ВРЕМЯ",
+            top1: "ТОП-1", top1Desc: "ЗАЙМИТЕ 1 МЕСТО В ЛИДЕРБОРДЕ",
+            collector: "КОЛЛЕКЦИОНЕР", collectorDesc: "ОТКРОЙТЕ ВСЕ ДОСТИЖЕНИЯ",
+            pixel: "ПИКСЕЛЬ", pixelDesc: "СЪЕШЬТЕ 1000 ЯБЛОК СУММАРНО",
+            nightOwl: "НОЧНОЙ ЖИТЕЛЬ", nightOwlDesc: "СЫГРАЙТЕ ПОСЛЕ 00:00",
+            earlyBird: "РАННЯЯ ПТИЦА", earlyBirdDesc: "СЫГРАЙТЕ ДО 07:00",
+            speedRunner: "СПИДРАН", speedRunnerDesc: "200 ОЧКОВ НА СЛОЖНОСТИ АД"
         },
         modeDetails: {
             classic: [
@@ -137,6 +158,27 @@ export const i18n = {
                 "• ПОРТАЛЫ ПЕРЕМЕЩАЮТСЯ КАЖДЫЕ 5 СЕКУНД",
                 "• ВИЗУАЛЬНЫЙ И ЗВУКОВОЙ ЭФФЕКТ",
                 "• СТЕНЫ ТЕЛЕПОРТИРУЮТ КАК В КЛАССИКЕ"
+            ],
+            maze: [
+                "• СТАТИЧНЫЕ СТЕНЫ-ЛАБИРИНТ",
+                "• СТОЛКНОВЕНИЕ СО СТЕНОЙ = СМЕРТЬ",
+                "• ЕДА ПОЯВЛЯЕТСЯ ТОЛЬКО В СВОБОДНЫХ КЛЕТКАХ",
+                "• ТРЕБУЕТСЯ ПЛАНИРОВАНИЕ МАРШРУТА",
+                "• ГЕНЕРАЦИЯ НОВОГО ЛАБИРИНТА КАЖДУЮ ИГРУ"
+            ],
+            night: [
+                "• ВИДНО ТОЛЬКО ВОКРУГ ГОЛОВЫ",
+                "• РАДИУС ВИДИМОСТИ — 4 КЛЕТКИ",
+                "• ЕДА И ВРАГИ СКРЫТЫ В ТЕНИ",
+                "• ПОЛАГАЙТЕСЬ НА ПАМЯТЬ И ИНТУИЦИЮ",
+                "• СТЕНЫ НЕ СМЕРТЕЛЬНЫ (КАК В КЛАССИКЕ)"
+            ],
+            endless: [
+                "• БЕСКОНЕЧНЫЙ РЕЖИМ",
+                "• СКОРОСТЬ РАСТЁТ КАЖДЫЕ 30 СЕКУНД",
+                "• ЕДЫ ВСЁ БОЛЬШЕ И БОЛЬШЕ",
+                "• НА 300+ ОЧКАХ — ЭКСТРИМ",
+                "• РЕКОРД = ВЫЖИВАНИЕ"
             ]
         }
     },
@@ -155,7 +197,7 @@ export const i18n = {
         modeInfoMenu: "MODE INFO",
         gameModes: [
             "CLASSIC", "WALLS", "STONES", "GHOST", "MOVING STONES", "VS AI", "TIME MODE", "RUSH MODE",
-            "COIN COLLECTOR", "PORTALS"
+            "COIN COLLECTOR", "PORTALS", "MAZE", "NIGHT", "ENDLESS"
         ],
         modeDescriptions: [
             "Classic snake. Food +1, grows, walls wrap around.",
@@ -167,7 +209,10 @@ export const i18n = {
             "60 seconds time limit. Each food +5 seconds.",
             "Food teleports to new location every 3 seconds.",
             "Collect gold coins (+1 each). No food, snake grows.",
-            "2 portals on the field. Enter one = teleport to other."
+            "2 portals on the field. Enter one = teleport to other.",
+            "Maze of walls. Find path to food, don't hit walls!",
+            "Only visible around head. Rely on memory!",
+            "Endless mode. Speed gradually increases."
         ],
         modeInfoTitle: "MODE INFO",
         modeInfoCurrent: "CURRENT MODE:",
@@ -194,6 +239,13 @@ export const i18n = {
         resetCacheHint: "OK - UPDATE",
         resetCacheYes: "YES",
         resetCacheNo: "NO",
+        lockedMode: "LOCKED",
+        unlockMode: "UNLOCK",
+        unlockModeConfirm: "UNLOCK MODE?",
+        alreadyUnlocked: "ALREADY UNLOCKED",
+        levelShort: "LVL.",
+        endless: "ENDLESS",
+        bigScore: "NEW RECORD!",
         taskList: {
             score50: "FIRST STEP", score50Desc: "REACH 50 POINTS",
             score100: "NIMBLE", score100Desc: "REACH 100 POINTS",
@@ -213,7 +265,16 @@ export const i18n = {
             hawkTactics: "HAWK TACTICS", hawkTacticsDesc: "EAT RARE FOOD WITHIN 5 TICKS BEFORE VANISHING",
             dietMode: "DIET MODE", dietModeDesc: "EAT A SHRINK FOOD WITH SNAKE LENGTH OF 3",
             identityCrisis: "IDENTITY CRISIS", identityCrisisDesc: "SWITCH THE DESIGN THEME 5 TIMES IN MENU",
-            greed: "GREED", greedDesc: "DIE JUST ONE STEP AWAY FROM A GOLDEN APPLE"
+            greed: "GREED", greedDesc: "DIE JUST ONE STEP AWAY FROM A GOLDEN APPLE",
+            sniper: "SNIPER", sniperDesc: "EAT FOOD NEXT TO A WALL",
+            marathon: "MARATHON", marathonDesc: "SCORE 5000 IN ONE RUN",
+            hungry: "HUNGRY", hungryDesc: "30 SEC WITHOUT FOOD IN TIME MODE",
+            top1: "TOP-1", top1Desc: "REACH #1 IN LEADERBOARD",
+            collector: "COLLECTOR", collectorDesc: "UNLOCK ALL ACHIEVEMENTS",
+            pixel: "PIXEL", pixelDesc: "EAT 1000 APPLES TOTAL",
+            nightOwl: "NIGHT OWL", nightOwlDesc: "PLAY AFTER 00:00",
+            earlyBird: "EARLY BIRD", earlyBirdDesc: "PLAY BEFORE 07:00",
+            speedRunner: "SPEEDRUNNER", speedRunnerDesc: "200 POINTS ON HELL"
         },
         modeDetails: {
             classic: [
@@ -278,6 +339,27 @@ export const i18n = {
                 "• PORTALS MOVE EVERY 5 SECONDS",
                 "• VISUAL AND SOUND EFFECT",
                 "• WALLS WRAP LIKE IN CLASSIC MODE"
+            ],
+            maze: [
+                "• STATIC WALL MAZE",
+                "• HITTING A WALL = DEATH",
+                "• FOOD SPAWNS ONLY IN FREE CELLS",
+                "• REQUIRES ROUTE PLANNING",
+                "• NEW MAZE EVERY GAME"
+            ],
+            night: [
+                "• ONLY VISIBLE AROUND HEAD",
+                "• VISION RADIUS — 4 CELLS",
+                "• FOOD AND ENEMIES HIDDEN IN DARK",
+                "• RELY ON MEMORY AND INTUITION",
+                "• WALLS ARE NOT DEADLY (LIKE CLASSIC)"
+            ],
+            endless: [
+                "• ENDLESS MODE",
+                "• SPEED INCREASES EVERY 30 SEC",
+                "• MORE AND MORE FOOD",
+                "• EXTREME AT 300+ POINTS",
+                "• RECORD = SURVIVAL"
             ]
         }
     }

@@ -1,5 +1,5 @@
 // sw.js — Service Worker для NETSNAKE 10
-const CACHE_VERSION = 'v2.4.1';
+const CACHE_VERSION = 'v2.5.0';
 const CACHE_NAME = `netsnake-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -35,13 +35,10 @@ const PRECACHE_URLS = [
     './js/tasks.js',
     './js/inputs.js',
     './js/firebase-config.js',
-    // === МАГАЗИН ===
     './js/currency.js',
     './js/shop.js',
     './js/shopDrawer.js',
-    // === МУЗЫКА ===
     './audio/bg-music.mp3',
-    // === ИКОНКИ ===
     './icons/icon-192.png',
     './icons/icon-512.png',
     './icons/icon-maskable-512.png'
@@ -84,14 +81,12 @@ self.addEventListener('fetch', (event) => {
 
     if (request.method !== 'GET') return;
 
-    // Firebase и внешние API — только сеть
     if (url.hostname.includes('firebase') ||
         url.hostname.includes('googleapis') ||
         url.hostname.includes('gstatic')) {
         return;
     }
 
-    // Навигационные запросы
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
@@ -100,7 +95,6 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache First
     event.respondWith(
         caches.match(request).then((cached) => {
             if (cached) return cached;
@@ -121,7 +115,7 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// === Сообщения от главного потока ===
+// === Сообщения ===
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting();

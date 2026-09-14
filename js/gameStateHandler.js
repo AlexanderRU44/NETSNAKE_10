@@ -2,7 +2,7 @@ import { initAudio, updateMusicBySound, playSound } from './utils.js';
 import { unlockAchievement, isChameleonUnlocked } from './achievements.js';
 import { achievements } from './achievements.js';
 import { snakeColors } from './utils.js';
-import { SHOP_ITEMS } from './shop.js';
+import { SHOP_ITEMS, getModeItemByModeIdx } from './shop.js';
 
 export class GameStateHandler {
     constructor(game) {
@@ -12,15 +12,35 @@ export class GameStateHandler {
     async handleCenter() {
         initAudio();
 
-        // === ДИАЛОГ ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
+        // === ДИАЛОГ СБРОСА КЭША ===
         if (this.game.currentScreen === "RESET_CACHE_CONFIRM") {
             if (this.game.dialogSelection === 0) {
-                // ДА — сбрасываем (await обязателен, метод async)
                 await this.resetCache();
             } else {
-                // НЕТ — возвращаемся в ОПЦИИ
                 this.game.currentScreen = "SETTINGS";
             }
+            return;
+        }
+
+        // === ДИАЛОГ РАЗБЛОКИРОВКИ РЕЖИМА ===
+        if (this.game.currentScreen === "UNLOCK_MODE_CONFIRM") {
+            const modeIdx = this.game.unlockDialogModeIdx;
+            if (this.game.dialogSelection === 0) {
+                const item = getModeItemByModeIdx(modeIdx);
+                if (item && this.game.currency.crystals >= item.price) {
+                    if (this.game.currency.spend(item.price)) {
+                        this.game.currency.unlockMode(modeIdx);
+                        this.game.currency.markPurchased(item.id);
+                        playSound('taskComplete', this.game.soundEnabled);
+                        // Автоматически выбираем этот режим
+                        this.game.modesMenuSelection = modeIdx;
+                    }
+                } else {
+                    playSound('die', this.game.soundEnabled);
+                }
+            }
+            this.game.currentScreen = "MODES";
+            this.game.unlockDialogModeIdx = -1;
             return;
         }
 
@@ -112,6 +132,7 @@ export class GameStateHandler {
         const item = SHOP_ITEMS[this.game.shopSelection];
         if (!item) return;
 
+        // Уже куплено (кроме расходников)
         if (item.type !== 'consumable' && this.game.currency.has(item.id)) {
             return;
         }
@@ -127,6 +148,10 @@ export class GameStateHandler {
             this.game.currency.markPurchased(item.id);
             this.game.currentSnakeColorIdx = item.colorIdx;
             localStorage.setItem('snake_color_idx', item.colorIdx);
+        } else if (item.type === 'mode') {
+            // Разблокировка режима
+            this.game.currency.markPurchased(item.id);
+            this.game.currency.unlockMode(item.modeIdx);
         } else if (item.type === 'permanent') {
             this.game.currency.markPurchased(item.id);
         } else if (item.type === 'consumable') {
@@ -137,7 +162,19 @@ export class GameStateHandler {
     }
 
     handleModesMenu() {
-        this.game.currentModeIdx = this.game.modesMenuSelection;
+        const selectedIdx = this.game.modesMenuSelection;
+        const unlocked = this.game.currency.isModeUnlocked(selectedIdx);
+
+        if (!unlocked) {
+            // Открываем диалог разблокировки
+            this.game.unlockDialogModeIdx = selectedIdx;
+            this.game.dialogSelection = 0;
+            this.game.currentScreen = "UNLOCK_MODE_CONFIRM";
+            return;
+        }
+
+        // Если разблокирован — запускаем
+        this.game.currentModeIdx = selectedIdx;
         this.game.updateHUD();
         this.game.loadBestSingleScore();
         this.game.reset();
@@ -161,7 +198,6 @@ export class GameStateHandler {
         } else if (s === 3) {
             this.game.openNameInput();
         } else if (s === 4) {
-            // Переключение только между открытыми скинами
             let nextColorIdx = this.game.currentSnakeColorIdx;
             let attempts = 0;
             do {
@@ -181,15 +217,13 @@ export class GameStateHandler {
             this.game.themeChangesCount++;
             if (this.game.themeChangesCount >= 5) unlockAchievement("identityCrisis", achievements);
         } else if (s === 6) {
-            // Открываем диалог подтверждения
             this.game.currentScreen = "RESET_CACHE_CONFIRM";
-            this.game.dialogSelection = 0; // 0 = ДА, 1 = НЕТ
+            this.game.dialogSelection = 0;
             return;
         }
         this.game.updateMiniDisplay();
     }
 
-    // === Метод сброса кэша и перезагрузки ===
     async resetCache() {
         try {
             if ('caches' in window) {

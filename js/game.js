@@ -20,7 +20,7 @@ import { SpecialModes } from './specialModes.js';
 import { ParticleSystem } from './particleSystem.js';
 import { Currency } from './currency.js';
 import { ShopDrawer } from './shopDrawer.js';
-import { SHOP_ITEMS } from './shop.js';
+import { SHOP_ITEMS, getModeItemByModeIdx } from './shop.js';
 import {
     audioCtx, initAudio, triggerVibration, playSound, snakeColors, speeds,
     maxBigFoodTime, maxShrinkTime, maxTurboTime, addFloatingScore,
@@ -92,6 +92,7 @@ export class Game {
         this.floatingScores = [];
         this.regularApplesStreak = 0;
         this.totalGamesPlayed = parseInt(localStorage.getItem("snake_total_games_played") || "0");
+        this.totalApplesEaten = parseInt(localStorage.getItem("snake_total_apples") || "0");
         this.themeChangesCount = 0;
         this.currentScreen = "INTRO";
 
@@ -127,8 +128,14 @@ export class Game {
         this.victoryFlag = false;
 
         this.modesScrollY = 0;
-
         this.dialogSelection = 0;
+
+        // Модальное окно подтверждения режима
+        this.unlockDialogModeIdx = -1;
+
+        // Эндлесс
+        this.endlessTick = 0;
+        this.endlessSpeedLevel = 0;
 
         this.shieldActive = false;
         this.particleSystem = new ParticleSystem(this);
@@ -323,11 +330,34 @@ export class Game {
         }
     }
 
+    // === ЭНДЛЕСС — ускорение ===
+    updateEndlessMode(deltaMs) {
+        if (this.currentModeIdx !== 12) return;
+        this.endlessTick += deltaMs;
+        // Каждые 30 секунд ускоряемся
+        if (this.endlessTick >= 30000) {
+            this.endlessTick = 0;
+            this.endlessSpeedLevel++;
+            if (this.endlessSpeedLevel > 5) this.endlessSpeedLevel = 5;
+            // Меняем скорость (от 100 до 40)
+            const newSpeed = Math.max(40, 100 - this.endlessSpeedLevel * 12);
+            this.speeds[1] = newSpeed;
+            this.updateTicker();
+            const t = this.i18n[this.currentLang];
+            addFloatingScore(this.floatingScores, this.snake[0].x, this.snake[0].y, `SPEED ${this.endlessSpeedLevel + 1}`, this.currentLang);
+        }
+    }
+
     endGame(victory = false) {
         playSound("die", this.soundEnabled);
         this.gameOver = true;
         this.isPaused = true;
         this.isTurboActive = false;
+
+        // Проверка времени для "ночной житель" и "ранняя птица"
+        const hour = new Date().getHours();
+        if (hour >= 0 && hour < 5) unlockAchievement("nightOwl", achievements);
+        if (hour >= 5 && hour < 7) unlockAchievement("earlyBird", achievements);
 
         if (victory && this.currentModeIdx === 5) {
             this.victoryFlag = true;
@@ -385,6 +415,11 @@ export class Game {
         this.timeWarningFlash = false;
         this.victoryFlag = false;
         this.goldDistanceBeforeDeath = null;
+        this.endlessTick = 0;
+        this.endlessSpeedLevel = 0;
+
+        // Сброс скорости для эндлесса
+        this.speeds[1] = 100;
 
         this.foodLogic.resetShield();
 
@@ -408,6 +443,13 @@ export class Game {
             this.food = null;
         }
         this.generateObstacles();
+
+        // Если еда попала на стену лабиринта — перегенерируем
+        if (this.currentModeIdx === 10 && this.food &&
+            this.obstacles.some(o => o.x === this.food.x && o.y === this.food.y)) {
+            this.generateFood();
+        }
+
         if (this.currentModeIdx === 5) {
             this.aiLogic.initAIOpponent();
         } else {
@@ -454,6 +496,10 @@ export class Game {
             this.currentScreen = "SETTINGS";
             return;
         }
+        if (this.currentScreen === "UNLOCK_MODE_CONFIRM") {
+            this.currentScreen = "MODES";
+            return;
+        }
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
             if (!this.isPaused) this.isPaused = true;
             this.currentScreen = "MAIN";
@@ -464,6 +510,10 @@ export class Game {
         initAudio();
         if (this.currentScreen === "RESET_CACHE_CONFIRM") {
             this.currentScreen = "SETTINGS";
+            return;
+        }
+        if (this.currentScreen === "UNLOCK_MODE_CONFIRM") {
+            this.currentScreen = "MODES";
             return;
         }
         if (this.currentScreen !== "EDIT_NAME" && this.currentScreen !== "INTRO") {
@@ -560,7 +610,8 @@ export class Game {
                     this.shopScrollY = Math.max(0, Math.min(this.shopScrollY, maxScroll));
                 }
             }
-            else if (this.currentScreen === "RESET_CACHE_CONFIRM") {
+            else if (this.currentScreen === "RESET_CACHE_CONFIRM" ||
+                     this.currentScreen === "UNLOCK_MODE_CONFIRM") {
                 if (act === "LEFT") this.dialogSelection = 0;
                 if (act === "RIGHT") this.dialogSelection = 1;
             }
@@ -636,6 +687,10 @@ export class Game {
                 this.menuDrawer.drawPixelMenu(t.settings);
                 this.menuDrawer.drawResetCacheDialog();
             }
+            else if (this.currentScreen === "UNLOCK_MODE_CONFIRM") {
+                this.menuDrawer.drawModesScreen();
+                this.menuDrawer.drawUnlockModeDialog(this.unlockDialogModeIdx);
+            }
             return;
         }
 
@@ -644,6 +699,7 @@ export class Game {
 
         const tickMs = this.isTurboActive ? this.speeds[2] : this.speeds[this.currentSpeedMode];
         this.updateRubies(tickMs);
+        this.updateEndlessMode(tickMs);
 
         if (this.currentModeIdx !== 8) {
             if (this.foodType === "BIG" || this.foodType === "SHRINK" || this.foodType === "TURBO" || this.foodType === "SHIELD") {
@@ -715,6 +771,12 @@ export class Game {
             this.renderer.drawFloatingScores(this.floatingScores);
             if (this.currentModeIdx === 8) this.renderer.drawCoins(this.specialModes.coins);
             if (this.currentModeIdx === 9) this.renderer.drawPortals(this.specialModes.portals);
+
+            // === НОЧНОЙ РЕЖИМ — туман поверх всего ===
+            if (this.currentModeIdx === 11) {
+                this.renderer.drawNightFog(this.snake[0].x, this.snake[0].y, 4);
+            }
+
             this.particleSystem.update();
             this.particleSystem.draw(this.ctx);
 

@@ -2,6 +2,7 @@ import { i18n } from './i18n.js';
 import { tasks } from './tasks.js';
 import { achievements, isChameleonUnlocked } from './achievements.js';
 import { snakeColors } from './utils.js';
+import { getModeItemByModeIdx } from './shop.js';
 
 export class MenuDrawer {
     constructor(ctx, game) {
@@ -112,84 +113,6 @@ export class MenuDrawer {
         }
     }
 
-    // === ОКНО ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
-    drawResetCacheDialog() {
-        const t = i18n[this.game.currentLang];
-        const ctx = this.ctx;
-        const isDark = this.game.isDarkTheme;
-
-        // Затемнение фона
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
-
-        // Панель диалога
-        const boxW = 320;
-        const boxH = 180;
-        const boxX = 40;
-        const boxY = 110;
-
-        ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
-        ctx.fillRect(boxX, boxY, boxW, boxH);
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-        // Заголовок
-        ctx.fillStyle = "#ff5c5c";
-        ctx.font = "13px 'Press Start 2P'";
-        ctx.textAlign = "center";
-        ctx.fillText(t.resetCacheConfirm, 200, boxY + 45);
-
-        // Описание
-        ctx.fillStyle = "#8b949e";
-        ctx.font = "7px 'Press Start 2P'";
-        ctx.fillText(t.resetCacheHint, 200, boxY + 70);
-
-        // Разделитель
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(boxX + 20, boxY + 90);
-        ctx.lineTo(boxX + boxW - 20, boxY + 90);
-        ctx.stroke();
-
-        // Кнопки ДА / НЕТ
-        const yesSelected = this.game.dialogSelection === 0;
-        const noSelected = this.game.dialogSelection === 1;
-
-        // Кнопка ДА
-        if (yesSelected) {
-            ctx.fillStyle = "#7ed321";
-            ctx.fillRect(70, boxY + 115, 100, 40);
-            ctx.fillStyle = "#ffffff";
-        } else {
-            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
-            ctx.fillRect(70, boxY + 115, 100, 40);
-            ctx.fillStyle = "#8b949e";
-        }
-        ctx.font = "12px 'Press Start 2P'";
-        ctx.textAlign = "center";
-        ctx.fillText(t.resetCacheYes, 120, boxY + 142);
-
-        // Кнопка НЕТ
-        if (noSelected) {
-            ctx.fillStyle = "#ff5c5c";
-            ctx.fillRect(230, boxY + 115, 100, 40);
-            ctx.fillStyle = "#ffffff";
-        } else {
-            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
-            ctx.fillRect(230, boxY + 115, 100, 40);
-            ctx.fillStyle = "#8b949e";
-        }
-        ctx.fillText(t.resetCacheNo, 280, boxY + 142);
-
-        // Подсказка снизу
-        ctx.fillStyle = "#8b949e";
-        ctx.font = "7px 'Press Start 2P'";
-        ctx.textAlign = "center";
-        ctx.fillText("◀ ▶ - ВЫБОР  |  OK - ПОДТВЕРДИТЬ", 200, boxY + boxH + 25);
-    }
-
     drawModesScreen() {
         const t = i18n[this.game.currentLang];
         const ctx = this.ctx;
@@ -216,8 +139,16 @@ export class MenuDrawer {
         for (let idx = 0; idx < t.gameModes.length; idx++) {
             let y = 115 + (idx * 30) - (this.game.modesScrollY || 0);
             let selected = (this.game.modesMenuSelection === idx) ? ">" : " ";
+            const unlocked = this.game.currency.isModeUnlocked(idx);
             let active = (this.game.currentModeIdx === idx) ? "[X]" : "[ ]";
-            ctx.fillText(`${selected} ${active} ${t.gameModes[idx]}`, 42, y);
+            let lockIcon = unlocked ? "" : "🔒 ";
+
+            if (unlocked) {
+                ctx.fillStyle = "#ffffff";
+            } else {
+                ctx.fillStyle = this.game.isDarkTheme ? "#6c7d93" : "#8b949e";
+            }
+            ctx.fillText(`${selected} ${active} ${lockIcon}${t.gameModes[idx]}`, 42, y);
         }
 
         ctx.restore();
@@ -230,10 +161,104 @@ export class MenuDrawer {
             ctx.fillRect(355, 95 + scrollPercent * 190, 4, 45);
         }
 
+        // Подсказка для заблокированного режима
+        const currentSelIdx = this.game.modesMenuSelection;
+        const isLocked = !this.game.currency.isModeUnlocked(currentSelIdx);
+        if (isLocked && currentSelIdx !== 0) {
+            ctx.fillStyle = "#ff5c5c";
+            ctx.textAlign = "center";
+            ctx.font = "8px 'Press Start 2P'";
+            ctx.fillText(t.unlockMode, 200, 345);
+        }
+
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.font = "10px 'Press Start 2P'";
         ctx.fillText(t.back, 200, 365);
+    }
+
+    // === ОКНО РАЗБЛОКИРОВКИ РЕЖИМА ===
+    drawUnlockModeDialog(modeIdx) {
+        const t = i18n[this.game.currentLang];
+        const ctx = this.ctx;
+        const isDark = this.game.isDarkTheme;
+        const item = getModeItemByModeIdx(modeIdx);
+
+        if (!item) return;
+
+        // Затемнение
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+
+        const boxW = 320;
+        const boxH = 190;
+        const boxX = 40;
+        const boxY = 105;
+
+        ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = "#ffd700";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Заголовок
+        ctx.fillStyle = "#ffd700";
+        ctx.font = "11px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.unlockModeConfirm, 200, boxY + 35);
+
+        // Название режима
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "10px 'Press Start 2P'";
+        const name = (this.game.currentLang === "RU") ? item.nameRU : item.nameEN;
+        ctx.fillText(name, 200, boxY + 65);
+
+        // Цена
+        ctx.fillStyle = "#00d4ff";
+        ctx.font = "11px 'Press Start 2P'";
+        ctx.fillText(`${item.price} 💎`, 200, boxY + 95);
+
+        // Баланс игрока
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "7px 'Press Start 2P'";
+        ctx.fillText(`У ВАС: ${this.game.currency.crystals} 💎`, 200, boxY + 115);
+
+        // Кнопки
+        const yesSelected = this.game.dialogSelection === 0;
+        const noSelected = this.game.dialogSelection === 1;
+        const canAfford = this.game.currency.crystals >= item.price;
+
+        // Кнопка ДА
+        if (yesSelected && canAfford) {
+            ctx.fillStyle = "#7ed321";
+            ctx.fillRect(70, boxY + 135, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(70, boxY + 135, 100, 40);
+            ctx.fillStyle = canAfford ? "#8b949e" : "#4a5a6a";
+        }
+        ctx.font = "12px 'Press Start 2P'";
+        ctx.fillText(t.resetCacheYes, 120, boxY + 162);
+
+        // Кнопка НЕТ
+        if (noSelected) {
+            ctx.fillStyle = "#ff5c5c";
+            ctx.fillRect(230, boxY + 135, 100, 40);
+            ctx.fillStyle = "#ffffff";
+        } else {
+            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+            ctx.fillRect(230, boxY + 135, 100, 40);
+            ctx.fillStyle = "#8b949e";
+        }
+        ctx.fillText(t.resetCacheNo, 280, boxY + 162);
+
+        // Подсказка если не хватает
+        if (!canAfford) {
+            ctx.fillStyle = "#ff5c5c";
+            ctx.font = "7px 'Press Start 2P'";
+            ctx.fillText(t.notEnough, 200, boxY + boxH - 10);
+        }
     }
 
     drawLeaderboardScreen() {
@@ -343,7 +368,7 @@ export class MenuDrawer {
         const achKeys = Object.keys(achievements);
         const hiddenKeys = ["cyborg", "hawkTactics", "dietMode", "identityCrisis", "greed"];
         achKeys.forEach((key, idx) => {
-            let y = 85 + (idx * 45) - this.game.achScrollY;
+            let y = 85 + (idx * 40) - this.game.achScrollY;
             let isDone = achievements[key];
             let isHidden = hiddenKeys.includes(key);
             ctx.font = "10px 'Press Start 2P'";
@@ -357,9 +382,10 @@ export class MenuDrawer {
                 ctx.fillText(`[ ] ${t.unknownTask}`, 42, y);
                 ctx.font = "7px 'Press Start 2P'";
                 ctx.fillStyle = this.game.isDarkTheme ? "#58a6ff" : "#a2b0c3";
-                ctx.fillText(`* ${t.secretTaskDesc} *`, 42, y + 13);
+                ctx.fillText(`* ${t.secretTaskDesc} *`, 42, y + 12);
             } else {
-                ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${t.achList[key]}`, 42, y);
+                const label = t.achList[key] || key;
+                ctx.fillText(`${isDone ? "[X]" : "[ ]"} ${label}`, 42, y);
                 ctx.font = "7px 'Press Start 2P'";
                 ctx.fillStyle = isDone ? "#ffffff" : (this.game.isDarkTheme ? "#8b949e" : "#a2b0c3");
 
@@ -367,7 +393,7 @@ export class MenuDrawer {
                 const maxWidth = 280;
                 const descLines = this.wrapText(descText, maxWidth, ctx);
                 descLines.forEach((line, lineIdx) => {
-                    ctx.fillText(line, 42, y + 13 + (lineIdx * 10));
+                    ctx.fillText(line, 42, y + 12 + (lineIdx * 10));
                 });
             }
         });
@@ -466,7 +492,7 @@ export class MenuDrawer {
         const modeName = t.gameModes[modeIdx];
         const modeDesc = t.modeDescriptions[modeIdx] || t.unknownTask;
 
-        const modeKeys = ['classic', 'walls', 'stones', 'ghost', 'movingStones', 'vsAI', 'timeMode', 'rushMode', 'coinCollector', 'portals'];
+        const modeKeys = ['classic', 'walls', 'stones', 'ghost', 'movingStones', 'vsAI', 'timeMode', 'rushMode', 'coinCollector', 'portals', 'maze', 'night', 'endless'];
         const modeKey = modeKeys[modeIdx] || 'classic';
         const detailLines = t.modeDetails && t.modeDetails[modeKey] ? t.modeDetails[modeKey] : [];
 

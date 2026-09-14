@@ -68,30 +68,41 @@ export class Renderer {
     }
 
     drawObstacles(obstacles, currentModeIdx, flashToggle, flashingObstacleIdx) {
-        if (currentModeIdx !== 2 && currentModeIdx !== 4) return;
+        const hasObstacles = [2, 4, 10].includes(currentModeIdx);
+        if (!hasObstacles) return;
         if (!obstacles || obstacles.length === 0) return;
 
         const ctx = this.ctx;
         const cellSize = this._cellSize;
         const isDark = this.isDarkTheme;
+        const isMaze = (currentModeIdx === 10);
 
         for (let i = 0; i < obstacles.length; i++) {
             const obs = obstacles[i];
-            if (currentModeIdx === 4 && i === flashingObstacleIdx && !flashToggle) continue;
+            if (!isMaze && currentModeIdx === 4 && i === flashingObstacleIdx && !flashToggle) continue;
 
             const x = obs.x * cellSize;
             const y = obs.y * cellSize;
 
-            ctx.fillStyle = isDark ? "#4a6a8a" : "#6c7d93";
-            ctx.fillRect(x + 2, y + 2, 16, 16);
-            ctx.fillStyle = isDark ? "#2a3a4a" : "#4a5a6a";
-            ctx.fillRect(x + 4, y + 4, 12, 12);
-            ctx.fillStyle = isDark ? "#6a8aaa" : "#8c9daf";
-            ctx.fillRect(x + 6, y + 6, 4, 4);
-            ctx.fillRect(x + 12, y + 10, 3, 3);
-            ctx.strokeStyle = isDark ? "#1a2a3a" : "#3a4a5a";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x + 2, y + 2, 16, 16);
+            if (isMaze) {
+                ctx.fillStyle = isDark ? "#30363d" : "#2b3a4a";
+                ctx.fillRect(x, y, cellSize, cellSize);
+                ctx.fillStyle = isDark ? "#484f58" : "#4a5a6a";
+                ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+                ctx.fillStyle = isDark ? "#6a8aaa" : "#8c9daf";
+                ctx.fillRect(x + 4, y + 4, 3, 3);
+            } else {
+                ctx.fillStyle = isDark ? "#4a6a8a" : "#6c7d93";
+                ctx.fillRect(x + 2, y + 2, 16, 16);
+                ctx.fillStyle = isDark ? "#2a3a4a" : "#4a5a6a";
+                ctx.fillRect(x + 4, y + 4, 12, 12);
+                ctx.fillStyle = isDark ? "#6a8aaa" : "#8c9daf";
+                ctx.fillRect(x + 6, y + 6, 4, 4);
+                ctx.fillRect(x + 12, y + 10, 3, 3);
+                ctx.strokeStyle = isDark ? "#1a2a3a" : "#3a4a5a";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 2, y + 2, 16, 16);
+            }
         }
     }
 
@@ -262,6 +273,25 @@ export class Renderer {
         ctx.restore();
     }
 
+    // === НОЧНОЙ РЕЖИМ — туман войны ===
+    drawNightFog(headX, headY, radius = 4) {
+        const ctx = this.ctx;
+        const cellSize = this._cellSize;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const cx = headX * cellSize + cellSize / 2;
+        const cy = headY * cellSize + cellSize / 2;
+        const r = radius * cellSize;
+
+        const gradient = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.5);
+        gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+        gradient.addColorStop(0.6, "rgba(0, 0, 0, 0.7)");
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0.95)");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+    }
+
     drawFood(food, foodType, flashToggle) {
         if (!food) return;
         if (foodType !== "REGULAR" && !flashToggle) return;
@@ -368,7 +398,7 @@ export class Renderer {
         }
     }
 
-    // === РУБИНЫ (синие, как 💎 в магазине) ===
+    // === РУБИНЫ (синие) ===
     drawRubies(rubies, flashToggle) {
         if (!rubies || rubies.length === 0) return;
         const ctx = this.ctx;
@@ -379,15 +409,12 @@ export class Renderer {
             const x = ruby.x * cellSize;
             const y = ruby.y * cellSize;
 
-            // Мигание в последние 2.5 секунды
             const ttlSeconds = ruby.ttl / 1000;
             if (ttlSeconds < 2.5 && !flashToggle) continue;
 
-            // Свечение вокруг (синее)
             ctx.fillStyle = isDark ? "rgba(0, 212, 255, 0.3)" : "rgba(0, 212, 255, 0.15)";
             ctx.fillRect(x - 2, y - 2, cellSize + 4, cellSize + 4);
 
-            // Форма ромба (синий алмаз)
             ctx.fillStyle = "#00d4ff";
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 1);
@@ -397,7 +424,6 @@ export class Renderer {
             ctx.closePath();
             ctx.fill();
 
-            // Блик (светло-голубой)
             ctx.fillStyle = "#b3ecff";
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 4);
@@ -407,7 +433,6 @@ export class Renderer {
             ctx.closePath();
             ctx.fill();
 
-            // Тёмный контур (тёмно-синий)
             ctx.strokeStyle = "#0077b3";
             ctx.lineWidth = 1;
             ctx.beginPath();
