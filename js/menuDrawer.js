@@ -246,78 +246,97 @@ export class MenuDrawer {
     }
 
     // === ОКНО РАЗБЛОКИРОВКИ РЕЖИМА ===
-    drawUnlockModeDialog(modeIdx) {
-        const t = i18n[this.game.currentLang];
-        const ctx = this.ctx;
-        const isDark = this.game.isDarkTheme;
-        const price = getModePriceByModeIdx(modeIdx);
+drawUnlockModeDialog(modeIdx) {
+    const t = i18n[this.game.currentLang];
+    const ctx = this.ctx;
+    const isDark = this.game.isDarkTheme;
+    const price = getModePriceByModeIdx(modeIdx);
 
-        if (!price) return;
+    if (!price) return;
 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+    // Затемнение
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
-        const boxW = 320;
-        const boxH = 190;
-        const boxX = 40;
-        const boxY = 105;
+    // Панель — ВЫШЕ и ВЫШЕ, чтобы всё влезло
+    const boxW = 340;
+    const boxH = 240;
+    const boxX = 30;
+    const boxY = 80;
 
-        ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
-        ctx.fillRect(boxX, boxY, boxW, boxH);
-        ctx.strokeStyle = "#ffd700";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(boxX, boxY, boxW, boxH);
+    ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = "#ffd700";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-        ctx.fillStyle = "#ffd700";
-        ctx.font = "11px 'Press Start 2P'";
-        ctx.textAlign = "center";
-        ctx.fillText(t.unlockModeConfirm, 200, boxY + 35);
+    // Заголовок
+    ctx.fillStyle = "#ffd700";
+    ctx.font = "12px 'Press Start 2P'";
+    ctx.textAlign = "center";
+    ctx.fillText(t.unlockModeConfirm, 200, boxY + 32);
 
+    // Разделитель
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(boxX + 20, boxY + 50);
+    ctx.lineTo(boxX + boxW - 20, boxY + 50);
+    ctx.stroke();
+
+    // Название режима
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "10px 'Press Start 2P'";
+    ctx.fillText(t.gameModes[modeIdx], 200, boxY + 80);
+
+    // Цена
+    ctx.fillStyle = "#00d4ff";
+    ctx.font = "14px 'Press Start 2P'";
+    ctx.fillText(`${price} 💎`, 200, boxY + 115);
+
+    // Баланс игрока
+    ctx.fillStyle = "#8b949e";
+    ctx.font = "8px 'Press Start 2P'";
+    ctx.fillText(`У ВАС: ${this.game.currency.crystals} 💎`, 200, boxY + 140);
+
+    // Кнопки
+    const yesSelected = this.game.dialogSelection === 0;
+    const noSelected = this.game.dialogSelection === 1;
+    const canAfford = this.game.currency.crystals >= price;
+
+    // Кнопка ДА
+    if (yesSelected && canAfford) {
+        ctx.fillStyle = "#7ed321";
+        ctx.fillRect(60, boxY + 170, 120, 45);
         ctx.fillStyle = "#ffffff";
-        ctx.font = "10px 'Press Start 2P'";
-        ctx.fillText(t.gameModes[modeIdx], 200, boxY + 65);
-
-        ctx.fillStyle = "#00d4ff";
-        ctx.font = "11px 'Press Start 2P'";
-        ctx.fillText(`${price} 💎`, 200, boxY + 95);
-
-        ctx.fillStyle = "#8b949e";
-        ctx.font = "7px 'Press Start 2P'";
-        ctx.fillText(`У ВАС: ${this.game.currency.crystals} 💎`, 200, boxY + 115);
-
-        const yesSelected = this.game.dialogSelection === 0;
-        const noSelected = this.game.dialogSelection === 1;
-        const canAfford = this.game.currency.crystals >= price;
-
-        if (yesSelected && canAfford) {
-            ctx.fillStyle = "#7ed321";
-            ctx.fillRect(70, boxY + 135, 100, 40);
-            ctx.fillStyle = "#ffffff";
-        } else {
-            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
-            ctx.fillRect(70, boxY + 135, 100, 40);
-            ctx.fillStyle = canAfford ? "#8b949e" : "#4a5a6a";
-        }
-        ctx.font = "12px 'Press Start 2P'";
-        ctx.fillText(t.resetCacheYes, 120, boxY + 162);
-
-        if (noSelected) {
-            ctx.fillStyle = "#ff5c5c";
-            ctx.fillRect(230, boxY + 135, 100, 40);
-            ctx.fillStyle = "#ffffff";
-        } else {
-            ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
-            ctx.fillRect(230, boxY + 135, 100, 40);
-            ctx.fillStyle = "#8b949e";
-        }
-        ctx.fillText(t.resetCacheNo, 280, boxY + 162);
-
-        if (!canAfford) {
-            ctx.fillStyle = "#ff5c5c";
-            ctx.font = "7px 'Press Start 2P'";
-            ctx.fillText(t.notEnough, 200, boxY + boxH - 10);
-        }
+    } else {
+        ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+        ctx.fillRect(60, boxY + 170, 120, 45);
+        ctx.fillStyle = canAfford ? "#8b949e" : "#4a5a6a";
     }
+    ctx.font = "12px 'Press Start 2P'";
+    ctx.fillText(t.resetCacheYes, 120, boxY + 200);
+
+    // Кнопка НЕТ
+    if (noSelected) {
+        ctx.fillStyle = "#ff5c5c";
+        ctx.fillRect(220, boxY + 170, 120, 45);
+        ctx.fillStyle = "#ffffff";
+    } else {
+        ctx.fillStyle = isDark ? "#2a3a4a" : "#3a4a5a";
+        ctx.fillRect(220, boxY + 170, 120, 45);
+        ctx.fillStyle = "#8b949e";
+    }
+    ctx.fillText(t.resetCacheNo, 280, boxY + 200);
+
+    // Предупреждение о нехватке — ПОД панелью, а не поверх кнопок
+    if (!canAfford) {
+        ctx.fillStyle = "#ff5c5c";
+        ctx.font = "8px 'Press Start 2P'";
+        ctx.textAlign = "center";
+        ctx.fillText(t.notEnough, 200, boxY + boxH + 25);
+    }
+}
 
     drawLeaderboardScreen() {
         const t = i18n[this.game.currentLang];
