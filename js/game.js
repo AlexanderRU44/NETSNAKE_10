@@ -27,7 +27,6 @@ import {
     startBackgroundMusic, stopBackgroundMusic
 } from './utils.js';
 
-// === НАСТРОЙКИ РУБИНОВ ===
 const RUBY_SPAWN_INTERVAL_MIN = 8000;
 const RUBY_SPAWN_INTERVAL_MAX = 15000;
 const RUBY_LIFETIME = 10000;
@@ -96,7 +95,6 @@ export class Game {
         this.themeChangesCount = 0;
         this.currentScreen = "INTRO";
 
-        // Скин по умолчанию — только если куплен, иначе classic (0)
         const savedColorIdx = parseInt(localStorage.getItem("snake_color_idx") || "0");
         const ownedSkin = this.currencyHasSkinStatic(savedColorIdx);
         this.currentSnakeColorIdx = ownedSkin ? savedColorIdx : 0;
@@ -130,19 +128,16 @@ export class Game {
 
         this.modesScrollY = 0;
 
-        // === ДИАЛОГ ПОДТВЕРЖДЕНИЯ ===
-        this.dialogSelection = 0;   // 0 = ДА, 1 = НЕТ
+        this.dialogSelection = 0;
 
         this.shieldActive = false;
         this.particleSystem = new ParticleSystem(this);
 
-        // === МАГАЗИН ===
         this.currency = new Currency(this);
         this.shopDrawer = new ShopDrawer(this.ctx, this);
         this.shopSelection = 0;
         this.shopScrollY = 0;
 
-        // === РУБИНЫ НА ПОЛЕ ===
         this.rubies = [];
         this.rubySpawnTimer = 0;
         this.rubySpawnInterval = 0;
@@ -192,7 +187,6 @@ export class Game {
         this.animationController.updateTicker();
     }
 
-    // Статическая проверка скина (работает до создания currency)
     currencyHasSkinStatic(colorIdx) {
         if (colorIdx === 0) return true;
         const skinId = `skin_${['classic','green','blue','ruby','rainbow'][colorIdx]}`;
@@ -200,7 +194,6 @@ export class Game {
         return !!purchases[skinId];
     }
 
-    // Публичный метод для menuDrawer и gameStateHandler
     currencyHasSkin(colorIdx) {
         return this.currencyHasSkinStatic(colorIdx);
     }
@@ -273,7 +266,6 @@ export class Game {
         this.collisionChecker.checkCollision();
     }
 
-    // === СПАВН РУБИНОВ ===
     scheduleNextRubySpawn() {
         let minInterval = RUBY_SPAWN_INTERVAL_MIN;
         let maxInterval = RUBY_SPAWN_INTERVAL_MAX;
@@ -532,7 +524,6 @@ export class Game {
                 }
             }
             else if (this.currentScreen === "SETTINGS") {
-                // 7 пунктов: 0..6 (включая "СБРОСИТЬ КЭШ")
                 let max = 6;
                 if (act === "UP") this.settingsMenuSelection = (this.settingsMenuSelection <= 0) ? max : this.settingsMenuSelection - 1;
                 if (act === "DOWN") this.settingsMenuSelection = (this.settingsMenuSelection >= max) ? 0 : this.settingsMenuSelection + 1;
@@ -569,7 +560,6 @@ export class Game {
                     this.shopScrollY = Math.max(0, Math.min(this.shopScrollY, maxScroll));
                 }
             }
-            // === НАВИГАЦИЯ В ДИАЛОГЕ ПОДТВЕРЖДЕНИЯ ===
             else if (this.currentScreen === "RESET_CACHE_CONFIRM") {
                 if (act === "LEFT") this.dialogSelection = 0;
                 if (act === "RIGHT") this.dialogSelection = 1;

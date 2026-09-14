@@ -368,7 +368,7 @@ export class Renderer {
         }
     }
 
-    // === РУБИНЫ ===
+    // === РУБИНЫ (синие, как 💎 в магазине) ===
     drawRubies(rubies, flashToggle) {
         if (!rubies || rubies.length === 0) return;
         const ctx = this.ctx;
@@ -383,12 +383,12 @@ export class Renderer {
             const ttlSeconds = ruby.ttl / 1000;
             if (ttlSeconds < 2.5 && !flashToggle) continue;
 
-            // Свечение вокруг
-            ctx.fillStyle = isDark ? "rgba(255, 45, 85, 0.25)" : "rgba(255, 45, 85, 0.15)";
+            // Свечение вокруг (синее)
+            ctx.fillStyle = isDark ? "rgba(0, 212, 255, 0.3)" : "rgba(0, 212, 255, 0.15)";
             ctx.fillRect(x - 2, y - 2, cellSize + 4, cellSize + 4);
 
-            // Форма ромба (рубин)
-            ctx.fillStyle = "#ff2d55";
+            // Форма ромба (синий алмаз)
+            ctx.fillStyle = "#00d4ff";
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 1);
             ctx.lineTo(x + 19, y + 10);
@@ -397,8 +397,8 @@ export class Renderer {
             ctx.closePath();
             ctx.fill();
 
-            // Блик
-            ctx.fillStyle = "#ffb3c1";
+            // Блик (светло-голубой)
+            ctx.fillStyle = "#b3ecff";
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 4);
             ctx.lineTo(x + 13, y + 7);
@@ -407,8 +407,8 @@ export class Renderer {
             ctx.closePath();
             ctx.fill();
 
-            // Тёмный контур
-            ctx.strokeStyle = "#8b0000";
+            // Тёмный контур (тёмно-синий)
+            ctx.strokeStyle = "#0077b3";
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 1);

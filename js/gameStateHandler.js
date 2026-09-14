@@ -15,8 +15,8 @@ export class GameStateHandler {
         // === ДИАЛОГ ПОДТВЕРЖДЕНИЯ СБРОСА КЭША ===
         if (this.game.currentScreen === "RESET_CACHE_CONFIRM") {
             if (this.game.dialogSelection === 0) {
-                // ДА — сбрасываем
-                this.resetCache();
+                // ДА — сбрасываем (await обязателен, метод async)
+                await this.resetCache();
             } else {
                 // НЕТ — возвращаемся в ОПЦИИ
                 this.game.currentScreen = "SETTINGS";

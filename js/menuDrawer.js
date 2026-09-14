@@ -123,9 +123,9 @@ export class MenuDrawer {
         ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
         // Панель диалога
-        const boxW = 340;
+        const boxW = 320;
         const boxH = 180;
-        const boxX = 30;
+        const boxX = 40;
         const boxY = 110;
 
         ctx.fillStyle = isDark ? "#161b22" : "#2b3a4a";
@@ -134,9 +134,9 @@ export class MenuDrawer {
         ctx.lineWidth = 3;
         ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-        // Заголовок — из i18n
+        // Заголовок
         ctx.fillStyle = "#ff5c5c";
-        ctx.font = "10px 'Press Start 2P'";
+        ctx.font = "13px 'Press Start 2P'";
         ctx.textAlign = "center";
         ctx.fillText(t.resetCacheConfirm, 200, boxY + 45);
 
